@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="description" content="Sistema POS para Minimarket - Chile - 100% Offline">
+    <meta name="author" content="POS Minimarket">
+    <meta name="keywords" content="pos, punto de venta, minimarket, chile, offline, inventario">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="POS Mini">
+    <link rel="apple-touch-icon" href="icons/icon.svg">
+    <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+    <title>POS Minimarket - Sistema de Punto de Venta</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Splash screen para carga -->
+    <div id="splash-screen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #2563eb; display: flex; align-items: center; justify-content: center; z-index: 9999;">
+        <div style="text-align: center; color: white;">
+            <div style="font-size: 4rem; margin-bottom: 1rem;">🛒</div>
+            <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">POS Minimarket</h1>
+            <div class="loading"></div>
+            <p style="margin-top: 1rem; opacity: 0.8;">Cargando sistema...</p>
+        </div>
+    </div>
+
+    <div id="app" style="display: none;">
+        <button id="mobile-menu-btn" class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+        <div id="mobile-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:99;" onclick="toggleSidebar()"></div>
+        
+        <nav id="sidebar">
+            <div class="logo">
+                <h2>🛒 POS Minimarket</h2>
+                <small style="opacity: 0.7; font-size: 0.75rem;">v1.0.0</small>
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#" data-view="pos" class="active"><span class="icon">🛒</span> Punto de Venta</a></li>
+                <li><a href="#" data-view="products"><span class="icon">📦</span> Productos</a></li>
+                <li><a href="#" data-view="customers"><span class="icon">👥</span> Clientes</a></li>
+                <li><a href="#" data-view="suppliers"><span class="icon">🚚</span> Proveedores</a></li>
+                <li><a href="#" data-view="purchases"><span class="icon">📋</span> Compras</a></li>
+                <li><a href="#" data-view="cash"><span class="icon">💰</span> Caja</a></li>
+                <li><a href="#" data-view="inventory"><span class="icon">📊</span> Inventario</a></li>
+                <li><a href="#" data-view="reports"><span class="icon">📈</span> Reportes</a></li>
+                <li><a href="#" data-view="settings"><span class="icon">⚙️</span> Configuración</a></li>
+            </ul>
+            <div class="cash-status" id="cashStatus">
+                <div class="cash-closed">Caja Cerrada</div>
+            </div>
+            <div style="padding: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                <button class="btn btn-secondary btn-sm" style="width: 100%; margin-bottom: 0.5rem;" onclick="ShortcutHelper.show()">
+                    ⌨️ Atajos de Teclado
+                </button>
+                <div id="network-status" style="text-align: center; font-size: 0.75rem; opacity: 0.7; margin-top: 0.5rem;">
+                    <span id="online-indicator">🟢 Sistema Listo</span>
+                </div>
+            </div>
+        </nav>
+
+        <main id="main-content">
+            <div id="view-container"></div>
+        </main>
+    </div>
+
+    <div id="modal-overlay" class="modal-overlay"></div>
+    <div id="notification-container"></div>
+
+    <!-- Scripts en orden de dependencia -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="js/utils/formatter.js"></script>
+    <script src="js/utils/alerts.js"></script>
+    <script src="js/utils/backup.js"></script>
+    <script src="js/utils/keyboard.js"></script>
+    <script src="js/utils/validator.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/models/User.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/utils/db-utilities.js"></script>
+    <script src="js/models/Product.js"></script>
+    <script src="js/models/Sale.js"></script>
+    <script src="js/models/Customer.js"></script>
+    <script src="js/models/Supplier.js"></script>
+    <script src="js/models/Purchase.js"></script>
+    <script src="js/models/CashRegister.js"></script>
+    <script src="js/models/StockMovement.js"></script>
+    <script src="js/models/Payment.js"></script>
+    <script src="js/controllers/ProductController.js"></script>
+    <script src="js/controllers/POSController.js"></script>
+    <script src="js/controllers/CustomerController.js"></script>
+    <script src="js/controllers/SupplierController.js"></script>
+    <script src="js/controllers/CashController.js"></script>
+    <script src="js/controllers/ReportController.js"></script>
+    <script src="js/views/pos.js"></script>
+    <script src="js/views/products.js"></script>
+    <script src="js/views/customers.js"></script>
+    <script src="js/views/suppliers.js"></script>
+    <script src="js/views/purchases.js"></script>
+    <script src="js/views/cash.js"></script>
+    <script src="js/views/inventory.js"></script>
+    <script src="js/views/reports.js"></script>
+    <script src="js/views/settings.js"></script>
+    <script src="js/app.js"></script>
+
+    <script>
+        // Ocultar splash screen cuando todo cargue
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('splash-screen').style.display = 'none';
+                document.getElementById('app').style.display = 'flex';
+            }, 1000);
+        });
+
+        // Monitorear estado de red
+        window.addEventListener('online', () => {
+            document.getElementById('online-indicator').innerHTML = '🟢 Sistema Listo';
+        });
+        
+        window.addEventListener('offline', () => {
+            document.getElementById('online-indicator').innerHTML = '🔴 Modo Offline';
+        });
+
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('mobile-overlay');
+            sidebar.classList.toggle('active');
+            overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
+        }
+    </script>
+</body>
+</html>
