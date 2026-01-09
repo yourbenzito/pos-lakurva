@@ -79,6 +79,8 @@ class ReportController {
         
         let totalRevenue = 0;
         let totalCost = 0;
+        const productStats = {};
+        const categoryStats = {};
         
         for (const sale of sales) {
             totalRevenue += sale.total;
@@ -86,7 +88,41 @@ class ReportController {
             for (const item of sale.items) {
                 const product = await Product.getById(item.productId);
                 if (product) {
-                    totalCost += product.cost * item.quantity;
+                    const itemCost = product.cost * item.quantity;
+                    const itemRevenue = item.total;
+                    const itemProfit = itemRevenue - itemCost;
+                    
+                    totalCost += itemCost;
+                    
+                    // Por producto
+                    if (!productStats[product.id]) {
+                        productStats[product.id] = {
+                            name: product.name,
+                            category: product.category || 'General',
+                            revenue: 0,
+                            cost: 0,
+                            profit: 0,
+                            quantity: 0
+                        };
+                    }
+                    productStats[product.id].revenue += itemRevenue;
+                    productStats[product.id].cost += itemCost;
+                    productStats[product.id].profit += itemProfit;
+                    productStats[product.id].quantity += item.quantity;
+                    
+                    // Por categoría
+                    const category = product.category || 'General';
+                    if (!categoryStats[category]) {
+                        categoryStats[category] = {
+                            name: category,
+                            revenue: 0,
+                            cost: 0,
+                            profit: 0
+                        };
+                    }
+                    categoryStats[category].revenue += itemRevenue;
+                    categoryStats[category].cost += itemCost;
+                    categoryStats[category].profit += itemProfit;
                 }
             }
         }
@@ -94,11 +130,22 @@ class ReportController {
         const profit = totalRevenue - totalCost;
         const margin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
         
+        // Calcular márgenes para productos y categorías
+        Object.values(productStats).forEach(p => {
+            p.margin = p.revenue > 0 ? (p.profit / p.revenue) * 100 : 0;
+        });
+        
+        Object.values(categoryStats).forEach(c => {
+            c.margin = c.revenue > 0 ? (c.profit / c.revenue) * 100 : 0;
+        });
+        
         return {
             revenue: totalRevenue,
             cost: totalCost,
             profit: profit,
-            margin: margin
+            margin: margin,
+            byProduct: Object.values(productStats).sort((a, b) => b.profit - a.profit),
+            byCategory: Object.values(categoryStats).sort((a, b) => b.profit - a.profit)
         };
     }
 

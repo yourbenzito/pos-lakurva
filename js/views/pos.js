@@ -144,14 +144,61 @@ const POSView = {
             }
         });
         
-        // Enter key search
-        searchInput.addEventListener('keypress', async (e) => {
-            if (e.key === 'Enter') {
-                const term = e.target.value.trim();
-                if (term) {
-                    searchResults.style.display = 'none';
+        // Keyboard navigation for search results
+        searchInput.addEventListener('keydown', async (e) => {
+            const resultsDiv = document.getElementById('searchResults');
+            const items = resultsDiv.querySelectorAll('.search-result-item');
+            let selectedIndex = -1;
+            
+            // Find currently selected
+            items.forEach((item, index) => {
+                if (item.classList.contains('selected')) selectedIndex = index;
+            });
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    const nextIndex = (selectedIndex + 1) % items.length;
+                    POSView.highlightResult(nextIndex);
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    const prevIndex = (selectedIndex - 1 + items.length) % items.length;
+                    POSView.highlightResult(prevIndex);
+                }
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                const term = searchInput.value.trim();
+                
+                // Si hay resultados visibles en el dropdown
+                if (resultsDiv.style.display === 'block' && items.length > 0) {
+                    // Si hay uno resaltado, seleccionar ese
+                    if (selectedIndex !== -1) {
+                        const productId = items[selectedIndex].dataset.productId;
+                        POSView.selectSearchResult(productId);
+                    } else {
+                        // Si no hay ninguno resaltado, seleccionar el primero
+                        const productId = items[0].dataset.productId;
+                        POSView.selectSearchResult(productId);
+                    }
+                } else if (term.length >= 3) {
+                    // Si hay texto pero no hay dropdown visible, hacer búsqueda
+                    const products = await Product.search(term);
+                    if (products.length === 1) {
+                        // Si hay un solo resultado, seleccionarlo directamente
+                        POSView.selectSearchResult(products[0].id);
+                        searchInput.value = '';
+                    } else if (products.length > 1) {
+                        // Si hay múltiples resultados, mostrar dropdown
+                        this.showSearchDropdown(products);
+                    } else {
+                        showNotification('Producto no encontrado', 'warning');
+                    }
+                } else if (term.length >= 8 && !isNaN(term)) {
+                    // Búsqueda por código de barras
                     await this.searchProduct(term);
-                    e.target.value = '';
+                    searchInput.value = '';
                 }
             }
         });
@@ -165,6 +212,22 @@ const POSView = {
         
         this.updateCart();
     },
+
+    highlightResult(index) {
+        const items = document.querySelectorAll('.search-result-item');
+        items.forEach(item => {
+            item.classList.remove('selected');
+            item.style.background = 'white';
+        });
+        
+        const target = document.querySelector(`.search-result-item[data-index="${index}"]`);
+        if (target) {
+            target.classList.add('selected');
+            target.style.background = 'var(--light)';
+            // Ensure visible in scroll
+            target.scrollIntoView({ block: 'nearest' });
+        }
+    },
     
     showSearchDropdown(products) {
         const searchResults = document.getElementById('searchResults');
@@ -174,11 +237,12 @@ const POSView = {
             return;
         }
         
-        searchResults.innerHTML = products.map(p => `
-            <div class="search-result-item" 
-                 style="padding: 0.75rem; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.2s;"
-                 onmouseover="this.style.background='var(--light)'"
-                 onmouseout="this.style.background='white'"
+        searchResults.innerHTML = products.map((p, index) => `
+            <div class="search-result-item ${index === 0 ? 'selected' : ''}" 
+                 data-index="${index}"
+                 data-product-id="${p.id}"
+                 style="padding: 0.75rem; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.2s; background: ${index === 0 ? 'var(--light)' : 'white'};"
+                 onmouseover="POSView.highlightResult(${index})"
                  onclick="POSView.selectSearchResult(${p.id})">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
@@ -861,9 +925,14 @@ const POSView = {
     async setPendingCustomer(customerId, total) {
         const customer = await Customer.getById(customerId);
         posController.setCustomer(customer);
+        
+        // Obtener balance de cuenta del cliente
+        const accountBalance = await Customer.getAccountBalance(customerId);
+        
         // Refresh modal to show selected customer
         closeModal();
         this.showPendingSaleModal(total);
+        
         // Update main view customer info too
         document.getElementById('customerInfo').innerHTML = `
             <div style="padding: 1rem; background: #e0f2fe; border: 2px solid var(--primary); border-radius: 0.375rem;">
@@ -875,6 +944,15 @@ const POSView = {
                         <small style="color: var(--text);">
                             ${customer.phone || ''} ${customer.email ? '• ' + customer.email : ''}
                         </small>
+                        ${accountBalance.totalDebt > 0 ? `
+                            <div style="margin-top: 0.5rem; padding: 0.5rem; background: #fee2e2; border-radius: 0.25rem;">
+                                <strong style="color: var(--danger);">Deuda Total: ${formatCLP(accountBalance.totalDebt)}</strong>
+                            </div>
+                        ` : `
+                            <div style="margin-top: 0.5rem; padding: 0.5rem; background: #dcfce7; border-radius: 0.25rem;">
+                                <small style="color: var(--success);">✓ Sin deuda</small>
+                            </div>
+                        `}
                     </div>
                     <button class="btn btn-sm btn-secondary" onclick="POSView.removeCustomer()" title="Quitar cliente">
                         ✕
@@ -920,6 +998,38 @@ const POSView = {
             const sale = await posController.completeSale('pending', true, paymentDetails);
             this.updateCart();
             closeModal();
+            
+            // Actualizar información del cliente si está visible
+            if (posController.currentCustomer) {
+                const customerInfo = document.getElementById('customerInfo');
+                if (customerInfo) {
+                    // Recargar información del cliente para mostrar deuda actualizada
+                    const accountBalance = await Customer.getAccountBalance(posController.currentCustomer.id);
+                    customerInfo.innerHTML = `
+                        <div style="padding: 1rem; background: #e0f2fe; border: 2px solid var(--primary); border-radius: 0.375rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <div>
+                                    <div style="font-weight: bold; font-size: 1.1rem; margin-bottom: 0.25rem;">
+                                        👤 ${posController.currentCustomer.name}
+                                    </div>
+                                    <small style="color: var(--text);">
+                                        ${posController.currentCustomer.phone || ''} ${posController.currentCustomer.email ? '• ' + posController.currentCustomer.email : ''}
+                                    </small>
+                                    ${accountBalance.totalDebt > 0 ? `
+                                        <div style="margin-top: 0.5rem; padding: 0.5rem; background: #fee2e2; border-radius: 0.25rem;">
+                                            <strong style="color: var(--danger);">Deuda Total: ${formatCLP(accountBalance.totalDebt)}</strong>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                                <button class="btn btn-sm btn-secondary" onclick="POSView.removeCustomer()" title="Quitar cliente">
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
             this.showSaleReceipt(sale, true, partialPayment > 0 ? partialPayment : null, null);
         } catch (error) {
             showNotification(error.message, 'error');
@@ -1134,6 +1244,9 @@ const POSView = {
         const customer = await Customer.getById(customerId);
         posController.setCustomer(customer);
         
+        // Obtener balance de cuenta del cliente
+        const accountBalance = await Customer.getAccountBalance(customerId);
+        
         document.getElementById('customerInfo').innerHTML = `
             <div style="padding: 1rem; background: #e0f2fe; border: 2px solid var(--primary); border-radius: 0.375rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -1144,6 +1257,15 @@ const POSView = {
                         <small style="color: var(--text);">
                             ${customer.phone || ''} ${customer.email ? '• ' + customer.email : ''}
                         </small>
+                        ${accountBalance.totalDebt > 0 ? `
+                            <div style="margin-top: 0.5rem; padding: 0.5rem; background: #fee2e2; border-radius: 0.25rem;">
+                                <strong style="color: var(--danger);">Deuda Total: ${formatCLP(accountBalance.totalDebt)}</strong>
+                            </div>
+                        ` : `
+                            <div style="margin-top: 0.5rem; padding: 0.5rem; background: #dcfce7; border-radius: 0.25rem;">
+                                <small style="color: var(--success);">✓ Sin deuda</small>
+                            </div>
+                        `}
                     </div>
                     <button class="btn btn-sm btn-secondary" onclick="POSView.removeCustomer()" title="Quitar cliente">
                         ✕

@@ -20,8 +20,19 @@ class Sale {
         const saleId = await db.add('sales', sale);
         
         for (const item of sale.items) {
+            // Actualizar stock del producto
             await Product.updateStock(item.productId, item.quantity, 'subtract');
             
+            // Si el precio fue modificado en la venta, actualizar el precio del producto
+            // (solo si es diferente al precio actual)
+            const product = await Product.getById(item.productId);
+            if (product && item.unitPrice && item.unitPrice !== product.price) {
+                // Opcional: actualizar precio del producto con el precio de venta
+                // Comentado porque puede no ser deseable actualizar el precio base con cada venta
+                // await Product.update(item.productId, { price: item.unitPrice });
+            }
+            
+            // Crear movimiento de stock
             await StockMovement.create({
                 productId: item.productId,
                 type: 'sale',

@@ -1,12 +1,17 @@
 class StockMovement {
     static async create(data) {
+        const product = await Product.getById(data.productId);
+        const quantity = parseFloat(data.quantity);
+        
         const movement = {
             productId: data.productId,
             type: data.type,
-            quantity: parseFloat(data.quantity),
+            quantity: quantity,
             reference: data.reference || null,
             date: new Date().toISOString(),
-            reason: data.reason || ''
+            reason: data.reason || '',
+            cost_value: product ? (Math.abs(quantity) * product.cost) : 0,
+            sale_value: product ? (Math.abs(quantity) * product.price) : 0
         };
         
         return await db.add('stockMovements', movement);

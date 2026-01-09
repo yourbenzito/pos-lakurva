@@ -21,16 +21,81 @@ const CashView = {
                 <div class="card">
                     <h2 style="margin-bottom: 1.5rem;">Abrir Caja</h2>
                     
+                    <div style="margin-bottom: 1rem;">
+                        <label style="display: flex; align-items: center; cursor: pointer; margin-bottom: 0.5rem;">
+                            <input type="radio" name="openMode" value="denominations" checked onchange="CashView.switchOpenMode()">
+                            <span style="margin-left: 0.5rem;">Contar por denominaciones</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="openMode" value="quick" onchange="CashView.switchOpenMode()">
+                            <span style="margin-left: 0.5rem;">Ingreso rápido (monto total)</span>
+                        </label>
+                    </div>
+                    
                     <form id="openCashForm" onsubmit="CashView.openCash(event)">
-                        <div class="form-group">
-                            <label>Monto Inicial (CLP) *</label>
-                            <input type="number" 
-                                   id="initialAmount" 
-                                   class="form-control" 
-                                   placeholder="0" 
-                                   min="0" 
-                                   required 
-                                   autofocus>
+                        <div id="denominationsForm">
+                            <h4 style="margin-bottom: 1rem;">Billetes</h4>
+                            <div class="grid grid-2" style="gap: 0.75rem; margin-bottom: 1rem;">
+                                <div>
+                                    <label style="font-size: 0.9rem;">$20.000</label>
+                                    <input type="number" id="bill_20000" class="form-control denomination-input" value="0" min="0" oninput="CashView.calculateTotal()">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.9rem;">$10.000</label>
+                                    <input type="number" id="bill_10000" class="form-control denomination-input" value="0" min="0" oninput="CashView.calculateTotal()">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.9rem;">$5.000</label>
+                                    <input type="number" id="bill_5000" class="form-control denomination-input" value="0" min="0" oninput="CashView.calculateTotal()">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.9rem;">$2.000</label>
+                                    <input type="number" id="bill_2000" class="form-control denomination-input" value="0" min="0" oninput="CashView.calculateTotal()">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.9rem;">$1.000</label>
+                                    <input type="number" id="bill_1000" class="form-control denomination-input" value="0" min="0" oninput="CashView.calculateTotal()">
+                                </div>
+                            </div>
+                            
+                            <h4 style="margin-bottom: 1rem;">Monedas</h4>
+                            <div class="grid grid-2" style="gap: 0.75rem; margin-bottom: 1rem;">
+                                <div>
+                                    <label style="font-size: 0.9rem;">$500</label>
+                                    <input type="number" id="coin_500" class="form-control denomination-input" value="0" min="0" oninput="CashView.calculateTotal()">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.9rem;">$100</label>
+                                    <input type="number" id="coin_100" class="form-control denomination-input" value="0" min="0" oninput="CashView.calculateTotal()">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.9rem;">$50</label>
+                                    <input type="number" id="coin_50" class="form-control denomination-input" value="0" min="0" oninput="CashView.calculateTotal()">
+                                </div>
+                                <div>
+                                    <label style="font-size: 0.9rem;">$10</label>
+                                    <input type="number" id="coin_10" class="form-control denomination-input" value="0" min="0" oninput="CashView.calculateTotal()">
+                                </div>
+                            </div>
+                            
+                            <div style="background: var(--light); padding: 1rem; border-radius: 0.375rem; margin-bottom: 1rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <strong>Total Calculado:</strong>
+                                    <strong id="calculatedTotal" style="font-size: 1.25rem; color: var(--primary);">$0</strong>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="quickForm" style="display: none;">
+                            <div class="form-group">
+                                <label>Monto Total de Apertura (CLP) *</label>
+                                <input type="number" 
+                                       id="quickAmount" 
+                                       class="form-control" 
+                                       placeholder="0" 
+                                       min="0" 
+                                       required>
+                            </div>
                         </div>
                         
                         <button type="submit" class="btn btn-success btn-lg" style="width: 100%;">
@@ -43,6 +108,7 @@ const CashView = {
                     <h3 style="margin-bottom: 1rem;">Información</h3>
                     <div style="background: var(--light); padding: 1rem; border-radius: 0.375rem;">
                         <p style="margin-bottom: 0.5rem;">✓ Registra el monto inicial de efectivo</p>
+                        <p style="margin-bottom: 0.5rem;">✓ Puedes contar por denominaciones o ingresar monto total</p>
                         <p style="margin-bottom: 0.5rem;">✓ Todas las ventas se asociarán a esta caja</p>
                         <p>✓ Podrás cerrar la caja al final del día</p>
                     </div>
@@ -56,6 +122,65 @@ const CashView = {
                 </div>
             ` : ''}
         `;
+    },
+    
+    switchOpenMode() {
+        const mode = document.querySelector('input[name="openMode"]:checked').value;
+        const denominationsForm = document.getElementById('denominationsForm');
+        const quickForm = document.getElementById('quickForm');
+        
+        if (mode === 'denominations') {
+            denominationsForm.style.display = 'block';
+            quickForm.style.display = 'none';
+            document.getElementById('quickAmount').required = false;
+        } else {
+            denominationsForm.style.display = 'none';
+            quickForm.style.display = 'block';
+            document.getElementById('quickAmount').required = true;
+            // Clear denomination inputs
+            document.querySelectorAll('.denomination-input').forEach(input => input.value = 0);
+            this.calculateTotal();
+        }
+    },
+    
+    calculateTotal() {
+        const denominations = {
+            bill_20000: 20000,
+            bill_10000: 10000,
+            bill_5000: 5000,
+            bill_2000: 2000,
+            bill_1000: 1000,
+            coin_500: 500,
+            coin_100: 100,
+            coin_50: 50,
+            coin_10: 10
+        };
+        
+        let total = 0;
+        for (const [id, value] of Object.entries(denominations)) {
+            const input = document.getElementById(id);
+            if (input) {
+                total += (parseInt(input.value) || 0) * value;
+            }
+        }
+        
+        const totalElement = document.getElementById('calculatedTotal');
+        if (totalElement) {
+            totalElement.textContent = formatCLP(total);
+        }
+        
+        // Update hidden input for form submission
+        const initialAmountInput = document.getElementById('initialAmount');
+        if (!initialAmountInput) {
+            // Create hidden input if it doesn't exist
+            const form = document.getElementById('openCashForm');
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.id = 'initialAmount';
+            hiddenInput.name = 'initialAmount';
+            form.appendChild(hiddenInput);
+        }
+        document.getElementById('initialAmount').value = total;
     },
     
     async renderCashSummary(cashRegister, history) {
@@ -288,10 +413,38 @@ const CashView = {
     async openCash(event) {
         event.preventDefault();
         
-        const amount = parseFloat(document.getElementById('initialAmount').value);
+        const mode = document.querySelector('input[name="openMode"]:checked').value;
+        let amount = 0;
+        let denominations = null;
+        
+        if (mode === 'denominations') {
+            // Calculate from denominations
+            this.calculateTotal();
+            amount = parseFloat(document.getElementById('initialAmount').value) || 0;
+            
+            // Get denominations object
+            denominations = {
+                bill_20000: parseInt(document.getElementById('bill_20000').value) || 0,
+                bill_10000: parseInt(document.getElementById('bill_10000').value) || 0,
+                bill_5000: parseInt(document.getElementById('bill_5000').value) || 0,
+                bill_2000: parseInt(document.getElementById('bill_2000').value) || 0,
+                bill_1000: parseInt(document.getElementById('bill_1000').value) || 0,
+                coin_500: parseInt(document.getElementById('coin_500').value) || 0,
+                coin_100: parseInt(document.getElementById('coin_100').value) || 0,
+                coin_50: parseInt(document.getElementById('coin_50').value) || 0,
+                coin_10: parseInt(document.getElementById('coin_10').value) || 0
+            };
+        } else {
+            amount = parseFloat(document.getElementById('quickAmount').value) || 0;
+        }
+        
+        if (amount <= 0) {
+            showNotification('El monto inicial debe ser mayor a 0', 'error');
+            return;
+        }
         
         try {
-            await CashController.openCash(amount);
+            await CashController.openCash(amount, denominations);
             app.navigate('cash');
         } catch (error) {
             showNotification(error.message, 'error');

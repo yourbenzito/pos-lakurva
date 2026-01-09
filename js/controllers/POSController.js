@@ -139,44 +139,28 @@ class POSController {
         const saleId = await Sale.create(saleData);
         const sale = await Sale.getById(saleId);
         
-        // If there was a partial payment (even if pending), we should register the payments
+        // Si hay un pago parcial, crear registro de pago para que se refleje en la caja
         if (paidAmount > 0 && paymentDetails) {
-            // Note: Sale.create already creates the sale. 
-            // We might want to register specific Payment records for the partial amounts so they show up in cash register
-            // Sale.create doesn't automatically create Payment records in the 'payments' table, it just stores the sale.
-            // CashRegister calculation uses Sale.getTotalByPaymentMethod AND Payment.getByCashRegister.
-            // Wait, Sale.getTotalByPaymentMethod iterates sales and sums totals.
-            // If a sale is "pending", does it count towards cash register total?
-            // Usually pending sales (debts) don't count as cash in drawer UNTIL paid.
-            // BUT if we take a partial payment now, that partial amount IS in the drawer.
-            
-            // So for the partial payment to be reflected in CashRegister:
-            // 1. We should create Payment records for the amounts paid.
-            // 2. Or the Sale logic handles it.
-            
-            // Let's check CashRegister.getSummary logic again (from memory or read).
-            // It sums sales amounts + debt payments.
-            // If we create a sale with status 'pending', does it count in 'sales' sum?
-            // Sale.getByCashRegister gets ALL sales. 
-            // CashRegister.close uses Sale.getTotalByPaymentMethod.
-            // If the sale is pending, it shouldn't count as full cash.
-            // But if we use 'mixed' method and paymentDetails, Sale.getTotalByPaymentMethod sums those details.
-            // So if we have a pending sale with mixed payment details of 5000 cash, 
-            // getTotalByPaymentMethod will find 5000 cash.
-            // So the cash register will be correct!
-            
-            // However, we also need to ensure we don't double count if we later add a "Payment" record for the remaining debt.
-            // The remaining debt will be paid via "Customer -> Pay Debt", which creates a Payment record.
-            // CashRegister sums Sales + Payments.
-            // So the initial partial payment is covered by the Sale record itself (via paymentDetails).
-            // The future payment is covered by the Payment record.
-            // This seems consistent.
+            // Crear registros de pago para cada método de pago usado
+            for (const [method, amount] of Object.entries(paymentDetails)) {
+                if (amount > 0 && this.currentCustomer) {
+                    await Payment.create({
+                        saleId: saleId,
+                        customerId: this.currentCustomer.id,
+                        amount: parseFloat(amount),
+                        paymentMethod: method,
+                        notes: `Pago parcial de venta #${sale.saleNumber}`
+                    });
+                }
+            }
         }
         
+        // Limpiar carrito después de crear la venta
         this.clearCart();
         
+        // Mensaje de confirmación
         const message = isPending 
-            ? `Venta #${sale.saleNumber} anotada con saldo pendiente` 
+            ? `Venta #${sale.saleNumber} anotada. Deuda: ${formatCLP(sale.total - paidAmount)}` 
             : `Venta #${sale.saleNumber} completada`;
         showNotification(message, 'success');
         

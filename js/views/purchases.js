@@ -136,6 +136,17 @@ const PurchasesView = {
                 <div style="background: var(--light); padding: 1rem; border-radius: 0.375rem; margin-bottom: 1rem;">
                     <h4 style="margin-bottom: 1rem;">Agregar Productos</h4>
                     
+                    <div style="display: flex; gap: 1rem; margin-bottom: 1rem;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="costType" value="net" checked onchange="PurchasesView.updateCostMode()">
+                            <span style="margin-left: 0.5rem;">Costo Neto (Sin IVA)</span>
+                        </label>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="radio" name="costType" value="gross" onchange="PurchasesView.updateCostMode()">
+                            <span style="margin-left: 0.5rem;">Costo con IVA (19%)</span>
+                        </label>
+                    </div>
+
                     <div class="form-group">
                         <label>Buscar por Código de Barras o Nombre</label>
                         <div class="search-box" style="position: relative;">
@@ -242,14 +253,42 @@ const PurchasesView = {
         });
         
         // Handle Enter key
-        searchInput.addEventListener('keypress', async (e) => {
-            if (e.key === 'Enter') {
+        searchInput.addEventListener('keydown', async (e) => { // Changed to keydown to catch arrow keys
+            const resultsDiv = document.getElementById('purchaseProductSearchResults');
+            const items = resultsDiv.querySelectorAll('.search-result-item');
+            let selectedIndex = -1;
+            
+            // Find currently selected
+            items.forEach((item, index) => {
+                if (item.classList.contains('selected')) selectedIndex = index;
+            });
+
+            if (e.key === 'ArrowDown') {
                 e.preventDefault();
-                const term = searchInput.value.trim();
-                if (term) {
-                    await this.searchAndShowProduct(term);
-                    searchInput.value = '';
-                    resultsDiv.style.display = 'none';
+                if (items.length > 0) {
+                    const nextIndex = (selectedIndex + 1) % items.length;
+                    PurchasesView.highlightResult(nextIndex);
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (items.length > 0) {
+                    const prevIndex = (selectedIndex - 1 + items.length) % items.length;
+                    PurchasesView.highlightResult(prevIndex);
+                }
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (resultsDiv.style.display === 'block' && selectedIndex !== -1) {
+                    // Select highlighted
+                    const productId = items[selectedIndex].dataset.productId;
+                    PurchasesView.selectProductFromList(productId);
+                } else {
+                    // Normal search behavior
+                    const term = searchInput.value.trim();
+                    if (term) {
+                        await this.searchAndShowProduct(term);
+                        searchInput.value = '';
+                        resultsDiv.style.display = 'none';
+                    }
                 }
             }
         });
@@ -261,14 +300,30 @@ const PurchasesView = {
             }
         });
     },
+
+    updateCostMode() {
+        const costMode = document.querySelector('input[name="costType"]:checked').value;
+        const costLabel = document.getElementById('costInputLabel');
+        const addCostInput = document.getElementById('addCost');
+        
+        if (costLabel) {
+            costLabel.textContent = costMode === 'gross' ? 'Costo con IVA (19%) *' : 'Precio Neto/Costo (CLP) *';
+        }
+        
+        // Trigger recalculation if input exists and has value
+        if (addCostInput && addCostInput.value) {
+            addCostInput.dispatchEvent(new Event('input'));
+        }
+    },
     
     renderPurchaseSearchResults(products) {
         const resultsDiv = document.getElementById('purchaseProductSearchResults');
-        resultsDiv.innerHTML = products.map(p => `
-            <div class="search-result-item" 
+        resultsDiv.innerHTML = products.map((p, index) => `
+            <div class="search-result-item ${index === 0 ? 'selected' : ''}" 
+                 data-index="${index}"
+                 data-product-id="${p.id}"
                  style="padding: 0.75rem; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.2s;"
-                 onmouseover="this.style.background='var(--light)'"
-                 onmouseout="this.style.background='white'"
+                 onmouseover="PurchasesView.highlightResult(${index})"
                  onclick="PurchasesView.selectProductFromList(${p.id})">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
@@ -280,11 +335,27 @@ const PurchasesView = {
                         </small>
                     </div>
                     <div>
-                        <button class="btn btn-sm btn-primary" type="button">Seleccionar</button>
+                        <button class="btn btn-sm btn-primary" type="button" tabindex="-1">Seleccionar</button>
                     </div>
                 </div>
             </div>
         `).join('');
+    },
+
+    highlightResult(index) {
+        const items = document.querySelectorAll('.search-result-item');
+        items.forEach(item => {
+            item.classList.remove('selected');
+            item.style.background = 'white';
+        });
+        
+        const target = document.querySelector(`.search-result-item[data-index="${index}"]`);
+        if (target) {
+            target.classList.add('selected');
+            target.style.background = 'var(--light)';
+            // Ensure visible in scroll
+            target.scrollIntoView({ block: 'nearest' });
+        }
     },
     
     async searchAndShowProduct(term) {
@@ -342,7 +413,7 @@ const PurchasesView = {
                     </div>
                     
                     <div class="form-group">
-                        <label>Precio Neto/Costo (CLP) *</label>
+                        <label id="costInputLabel">Precio Neto/Costo (CLP) *</label>
                         <input type="number" 
                                id="addCost" 
                                class="form-control" 
@@ -377,6 +448,7 @@ const PurchasesView = {
                 
                 <div style="display: flex; gap: 0.5rem;">
                     <button class="btn btn-success" 
+                            id="btnAddProductToPurchase"
                             onclick="PurchasesView.addProductToPurchase(${product.id})"
                             type="button"
                             style="flex: 1;">
@@ -401,9 +473,15 @@ const PurchasesView = {
         
         const updatePreview = () => {
             const quantity = parseFloat(quantityInput.value) || 0;
-            const cost = parseFloat(costInput.value) || 0;
+            let cost = parseFloat(costInput.value) || 0;
             const price = parseFloat(priceInput.value) || 0;
             
+            // Adjust cost based on mode for preview calculation (margin should be based on NET cost)
+            const costMode = document.querySelector('input[name="costType"]:checked')?.value;
+            if (costMode === 'gross') {
+                cost = cost / 1.19;
+            }
+
             const subtotal = quantity * cost;
             const margin = cost > 0 ? ((price - cost) / cost * 100) : 0;
             
@@ -416,17 +494,18 @@ const PurchasesView = {
         costInput.addEventListener('input', updatePreview);
         priceInput.addEventListener('input', updatePreview);
         
-        // Add Enter key support for quick adding
+        // Add Enter key support for quick adding (intercepting default form submit)
         const handleEnter = (e) => {
             if (e.key === 'Enter') {
                 e.preventDefault();
-                PurchasesView.addProductToPurchase(product.id);
+                e.stopPropagation(); // Stop bubbling to main form
+                document.getElementById('btnAddProductToPurchase').click();
             }
         };
         
-        quantityInput.addEventListener('keypress', handleEnter);
-        costInput.addEventListener('keypress', handleEnter);
-        priceInput.addEventListener('keypress', handleEnter);
+        quantityInput.addEventListener('keydown', handleEnter);
+        costInput.addEventListener('keydown', handleEnter);
+        priceInput.addEventListener('keydown', handleEnter);
         
         updatePreview();
         setTimeout(() => quantityInput.focus(), 100);
@@ -442,7 +521,7 @@ const PurchasesView = {
         }
 
         const quantity = parseFloat(document.getElementById('addQuantity').value);
-        const cost = parseFloat(document.getElementById('addCost').value);
+        let cost = parseFloat(document.getElementById('addCost').value);
         const price = parseFloat(document.getElementById('addPrice').value);
         
         if (!quantity || quantity <= 0) {
@@ -458,6 +537,12 @@ const PurchasesView = {
         if (!price || price < 0) {
             showNotification('Ingresa un precio de venta válido', 'warning');
             return;
+        }
+
+        // Apply VAT logic if "Cost with VAT" is selected
+        const costMode = document.querySelector('input[name="costType"]:checked')?.value;
+        if (costMode === 'gross') {
+            cost = cost / 1.19; // Remove 19% VAT to store net cost
         }
         
         const product = await Product.getById(productId);
@@ -485,7 +570,12 @@ const PurchasesView = {
         this.updatePurchaseItems();
         showNotification(`${product.name} agregado a la compra`, 'success');
         
-        if (searchInput) searchInput.focus();
+        if (searchInput) {
+            setTimeout(() => {
+                searchInput.value = '';
+                searchInput.focus();
+            }, 50); // Small delay to ensure UI is ready
+        }
     },
     
     cancelAddProduct() {

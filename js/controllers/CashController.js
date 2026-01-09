@@ -1,11 +1,11 @@
 class CashController {
-    static async openCash(initialAmount) {
+    static async openCash(initialAmount, denominations = null) {
         if (!initialAmount || initialAmount < 0) {
             throw new Error('Monto inicial inválido');
         }
         
         try {
-            const id = await CashRegister.open(initialAmount);
+            const id = await CashRegister.open(initialAmount, denominations);
             showNotification('Caja abierta correctamente', 'success');
             return id;
         } catch (error) {

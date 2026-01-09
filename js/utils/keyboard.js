@@ -13,6 +13,29 @@ const KeyboardManager = {
             if (e.key === 'Escape') {
                 closeModal();
             }
+
+            // Global Enter key support for modal primary buttons
+            if (e.key === 'Enter') {
+                const modal = document.querySelector('.modal');
+                if (modal) {
+                    const primaryBtn = modal.querySelector('.btn-primary, .btn-success, .btn-danger');
+                    // Only trigger if no other specific input is focused to avoid conflicts (like textarea or specific inputs that handle Enter)
+                    const activeTag = document.activeElement.tagName;
+                    // Allow Enter on inputs unless they have specific handlers (which usually preventDefault)
+                    // We want to trigger the primary action if the user is just "confirming" the form
+                    // But we must be careful not to trigger if the user is in a textarea or if the button is disabled
+                    if (primaryBtn && !primaryBtn.disabled && activeTag !== 'TEXTAREA' && activeTag !== 'BUTTON') {
+                        // Check if the focused element already has an Enter listener (hard to detect generically)
+                        // A safer approach: Trigger click on the primary button found in the modal footer
+                        const footerBtn = modal.querySelector('.modal-footer .btn-primary, .modal-footer .btn-success, .modal-footer .btn-danger');
+                        if (footerBtn && !footerBtn.disabled) {
+                            // Don't trigger if focus is on a button (it handles itself)
+                            e.preventDefault(); 
+                            footerBtn.click();
+                        }
+                    }
+                }
+            }
         });
         
         document.addEventListener('keypress', (e) => {

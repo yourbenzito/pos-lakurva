@@ -57,6 +57,23 @@ const InventoryView = {
     },
     
     renderInventorySection(products, lowStock, movements, totalValue) {
+        // Calcular valor por categoría
+        const categoryValues = {};
+        products.forEach(p => {
+            const category = p.category || 'General';
+            if (!categoryValues[category]) {
+                categoryValues[category] = {
+                    name: category,
+                    value: 0,
+                    products: 0
+                };
+            }
+            categoryValues[category].value += p.stock * p.cost;
+            categoryValues[category].products += 1;
+        });
+        
+        const categoryList = Object.values(categoryValues).sort((a, b) => b.value - a.value);
+        
         return `
             <div class="grid grid-4">
                 <div class="stat-card">
@@ -76,6 +93,50 @@ const InventoryView = {
                 <div class="stat-card">
                     <h3>Valor Inventario</h3>
                     <div class="value" style="color: var(--primary);">${formatCLP(totalValue)}</div>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top: 1.5rem;">
+                <h3 style="margin-bottom: 1rem;">Valor del Inventario por Categoría</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Categoría</th>
+                                <th>Productos</th>
+                                <th>Valor Neto</th>
+                                <th>% del Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${categoryList.map(cat => {
+                                const percentage = totalValue > 0 ? (cat.value / totalValue * 100).toFixed(1) : 0;
+                                return `
+                                    <tr>
+                                        <td><strong>${cat.name}</strong></td>
+                                        <td>${cat.products}</td>
+                                        <td><strong style="color: var(--primary);">${formatCLP(cat.value)}</strong></td>
+                                        <td>
+                                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                                <div style="width: 100px; height: 20px; background: var(--light); border-radius: 10px; overflow: hidden;">
+                                                    <div style="width: ${percentage}%; height: 100%; background: var(--primary);"></div>
+                                                </div>
+                                                <span>${percentage}%</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `;
+                            }).join('')}
+                        </tbody>
+                        <tfoot style="background: var(--light);">
+                            <tr>
+                                <td><strong>TOTAL</strong></td>
+                                <td><strong>${products.length}</strong></td>
+                                <td><strong style="font-size: 1.1rem; color: var(--primary);">${formatCLP(totalValue)}</strong></td>
+                                <td><strong>100%</strong></td>
+                            </tr>
+                        </tfoot>
+                    </table>
                 </div>
             </div>
             
@@ -484,7 +545,28 @@ const InventoryView = {
             return;
         }
         
+        let totalQuantity = 0;
+        let totalCostValue = 0;
+        let totalSaleValue = 0;
+        
         let html = `
+            <div style="margin-bottom: 1.5rem;">
+                <div class="grid grid-3">
+                    <div class="stat-card">
+                        <h3>Total Cantidad</h3>
+                        <div class="value" id="consumptionTotalQty">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Valor Neto Perdido</h3>
+                        <div class="value" style="color: var(--danger);" id="consumptionTotalCost">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Valor Venta Perdido</h3>
+                        <div class="value" style="color: var(--warning);" id="consumptionTotalSale">-</div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="table-container">
                 <table>
                     <thead>
@@ -492,6 +574,8 @@ const InventoryView = {
                             <th>Fecha</th>
                             <th>Producto</th>
                             <th>Cantidad</th>
+                            <th>Valor Neto</th>
+                            <th>Valor Venta</th>
                             <th>Motivo</th>
                         </tr>
                     </thead>
@@ -500,11 +584,20 @@ const InventoryView = {
         
         for (const m of movements) {
             const product = await Product.getById(m.productId);
+            const costValue = m.cost_value || (product ? (Math.abs(m.quantity) * product.cost) : 0);
+            const saleValue = m.sale_value || (product ? (Math.abs(m.quantity) * product.price) : 0);
+            
+            totalQuantity += Math.abs(m.quantity);
+            totalCostValue += costValue;
+            totalSaleValue += saleValue;
+            
             html += `
                 <tr>
                     <td>${formatDateTime(m.date)}</td>
                     <td>${product ? product.name : 'Producto no encontrado'}</td>
-                    <td><strong style="color: var(--danger);">${m.quantity}</strong></td>
+                    <td><strong style="color: var(--danger);">${Math.abs(m.quantity)}</strong></td>
+                    <td>${formatCLP(costValue)}</td>
+                    <td>${formatCLP(saleValue)}</td>
                     <td>${m.reason || '-'}</td>
                 </tr>
             `;
@@ -517,6 +610,11 @@ const InventoryView = {
         `;
         
         container.innerHTML = html;
+        
+        // Update totals
+        document.getElementById('consumptionTotalQty').textContent = formatNumber(totalQuantity);
+        document.getElementById('consumptionTotalCost').textContent = formatCLP(totalCostValue);
+        document.getElementById('consumptionTotalSale').textContent = formatCLP(totalSaleValue);
     },
     
     async loadLossReport() {
@@ -528,7 +626,28 @@ const InventoryView = {
             return;
         }
         
+        let totalQuantity = 0;
+        let totalCostValue = 0;
+        let totalSaleValue = 0;
+        
         let html = `
+            <div style="margin-bottom: 1.5rem;">
+                <div class="grid grid-3">
+                    <div class="stat-card">
+                        <h3>Total Cantidad</h3>
+                        <div class="value" id="lossTotalQty">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Valor Neto Perdido</h3>
+                        <div class="value" style="color: var(--danger);" id="lossTotalCost">-</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3>Valor Venta Perdido</h3>
+                        <div class="value" style="color: var(--warning);" id="lossTotalSale">-</div>
+                    </div>
+                </div>
+            </div>
+            
             <div class="table-container">
                 <table>
                     <thead>
@@ -536,6 +655,8 @@ const InventoryView = {
                             <th>Fecha</th>
                             <th>Producto</th>
                             <th>Cantidad</th>
+                            <th>Valor Neto</th>
+                            <th>Valor Venta</th>
                             <th>Motivo</th>
                         </tr>
                     </thead>
@@ -544,11 +665,20 @@ const InventoryView = {
         
         for (const m of movements) {
             const product = await Product.getById(m.productId);
+            const costValue = m.cost_value || (product ? (Math.abs(m.quantity) * product.cost) : 0);
+            const saleValue = m.sale_value || (product ? (Math.abs(m.quantity) * product.price) : 0);
+            
+            totalQuantity += Math.abs(m.quantity);
+            totalCostValue += costValue;
+            totalSaleValue += saleValue;
+            
             html += `
                 <tr>
                     <td>${formatDateTime(m.date)}</td>
                     <td>${product ? product.name : 'Producto no encontrado'}</td>
-                    <td><strong style="color: var(--danger);">${m.quantity}</strong></td>
+                    <td><strong style="color: var(--danger);">${Math.abs(m.quantity)}</strong></td>
+                    <td>${formatCLP(costValue)}</td>
+                    <td>${formatCLP(saleValue)}</td>
                     <td>${m.reason || '-'}</td>
                 </tr>
             `;
@@ -561,6 +691,11 @@ const InventoryView = {
         `;
         
         container.innerHTML = html;
+        
+        // Update totals
+        document.getElementById('lossTotalQty').textContent = formatNumber(totalQuantity);
+        document.getElementById('lossTotalCost').textContent = formatCLP(totalCostValue);
+        document.getElementById('lossTotalSale').textContent = formatCLP(totalSaleValue);
     },
     
     getMovementTypeName(type) {

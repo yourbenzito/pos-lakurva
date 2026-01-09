@@ -80,10 +80,25 @@ const ReportsView = {
         const today = new Date();
         const report = await ReportController.getDailySales(today);
         
+        // Calcular totales por método de pago
+        const paymentMethods = { cash: 0, card: 0, qr: 0, other: 0 };
+        report.sales.forEach(sale => {
+            if (sale.paymentDetails) {
+                Object.entries(sale.paymentDetails).forEach(([method, amount]) => {
+                    if (paymentMethods[method] !== undefined) {
+                        paymentMethods[method] += parseFloat(amount);
+                    }
+                });
+            } else {
+                const method = sale.paymentMethod || 'cash';
+                paymentMethods[method] += sale.total;
+            }
+        });
+        
         return `
             <h3>Ventas de Hoy - ${formatDate(today)}</h3>
             
-            <div class="grid grid-3" style="margin: 1.5rem 0;">
+            <div class="grid grid-4" style="margin: 1.5rem 0;">
                 <div class="stat-card">
                     <h3>Número de Ventas</h3>
                     <div class="value">${report.totalSales}</div>
@@ -96,6 +111,42 @@ const ReportsView = {
                     <h3>Promedio por Venta</h3>
                     <div class="value" style="color: var(--primary);">
                         ${formatCLP(report.totalSales > 0 ? report.totalAmount / report.totalSales : 0)}
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <h3>Ticket Promedio</h3>
+                    <div class="value" style="color: var(--primary);">
+                        ${formatCLP(report.totalSales > 0 ? report.totalAmount / report.totalSales : 0)}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <h4 style="margin-bottom: 1rem;">Total por Método de Pago</h4>
+                <div class="grid grid-4">
+                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
+                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">💵 Efectivo</div>
+                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
+                            ${formatCLP(paymentMethods.cash)}
+                        </div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
+                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">💳 Tarjeta</div>
+                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
+                            ${formatCLP(paymentMethods.card)}
+                        </div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
+                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">📱 QR</div>
+                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
+                            ${formatCLP(paymentMethods.qr)}
+                        </div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
+                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">➕ Otro</div>
+                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
+                            ${formatCLP(paymentMethods.other)}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -153,11 +204,26 @@ const ReportsView = {
     async renderWeeklyReport() {
         const report = await ReportController.getWeeklySales();
         
+        // Calcular totales por método de pago
+        const paymentMethods = { cash: 0, card: 0, qr: 0, other: 0 };
+        report.sales.forEach(sale => {
+            if (sale.paymentDetails) {
+                Object.entries(sale.paymentDetails).forEach(([method, amount]) => {
+                    if (paymentMethods[method] !== undefined) {
+                        paymentMethods[method] += parseFloat(amount);
+                    }
+                });
+            } else {
+                const method = sale.paymentMethod || 'cash';
+                paymentMethods[method] += sale.total;
+            }
+        });
+        
         return `
             <h3>Ventas Semanales</h3>
             <p>${formatDate(report.startDate)} - ${formatDate(report.endDate)}</p>
             
-            <div class="grid grid-3" style="margin: 1.5rem 0;">
+            <div class="grid grid-4" style="margin: 1.5rem 0;">
                 <div class="stat-card">
                     <h3>Número de Ventas</h3>
                     <div class="value">${report.totalSales}</div>
@@ -170,6 +236,42 @@ const ReportsView = {
                     <h3>Promedio por Venta</h3>
                     <div class="value" style="color: var(--primary);">
                         ${formatCLP(report.totalSales > 0 ? report.totalAmount / report.totalSales : 0)}
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <h3>Promedio Diario</h3>
+                    <div class="value" style="color: var(--primary);">
+                        ${formatCLP(report.totalSales > 0 ? report.totalAmount / 7 : 0)}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <h4 style="margin-bottom: 1rem;">Total por Método de Pago</h4>
+                <div class="grid grid-4">
+                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
+                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">💵 Efectivo</div>
+                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
+                            ${formatCLP(paymentMethods.cash)}
+                        </div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
+                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">💳 Tarjeta</div>
+                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
+                            ${formatCLP(paymentMethods.card)}
+                        </div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
+                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">📱 QR</div>
+                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
+                            ${formatCLP(paymentMethods.qr)}
+                        </div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
+                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">➕ Otro</div>
+                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
+                            ${formatCLP(paymentMethods.other)}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -185,10 +287,25 @@ const ReportsView = {
         const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
                            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         
+        // Calcular totales por método de pago
+        const paymentMethods = { cash: 0, card: 0, qr: 0, other: 0 };
+        report.sales.forEach(sale => {
+            if (sale.paymentDetails) {
+                Object.entries(sale.paymentDetails).forEach(([method, amount]) => {
+                    if (paymentMethods[method] !== undefined) {
+                        paymentMethods[method] += parseFloat(amount);
+                    }
+                });
+            } else {
+                const method = sale.paymentMethod || 'cash';
+                paymentMethods[method] += sale.total;
+            }
+        });
+        
         return `
             <h3>Ventas de ${monthNames[report.month]} ${report.year}</h3>
             
-            <div class="grid grid-3" style="margin: 1.5rem 0;">
+            <div class="grid grid-4" style="margin: 1.5rem 0;">
                 <div class="stat-card">
                     <h3>Número de Ventas</h3>
                     <div class="value">${report.totalSales}</div>
@@ -201,6 +318,42 @@ const ReportsView = {
                     <h3>Promedio por Venta</h3>
                     <div class="value" style="color: var(--primary);">
                         ${formatCLP(report.totalSales > 0 ? report.totalAmount / report.totalSales : 0)}
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <h3>Promedio Diario</h3>
+                    <div class="value" style="color: var(--primary);">
+                        ${formatCLP(report.totalSales > 0 ? report.totalAmount / 30 : 0)}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <h4 style="margin-bottom: 1rem;">Total por Método de Pago</h4>
+                <div class="grid grid-4">
+                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
+                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">💵 Efectivo</div>
+                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
+                            ${formatCLP(paymentMethods.cash)}
+                        </div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
+                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">💳 Tarjeta</div>
+                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
+                            ${formatCLP(paymentMethods.card)}
+                        </div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
+                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">📱 QR</div>
+                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
+                            ${formatCLP(paymentMethods.qr)}
+                        </div>
+                    </div>
+                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
+                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">➕ Otro</div>
+                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
+                            ${formatCLP(paymentMethods.other)}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -286,7 +439,7 @@ const ReportsView = {
                 </div>
             </div>
             
-            <div style="padding: 1.5rem; background: var(--light); border-radius: 0.5rem;">
+            <div style="padding: 1.5rem; background: var(--light); border-radius: 0.5rem; margin-bottom: 1.5rem;">
                 <h4 style="margin-bottom: 1rem;">Resumen Financiero</h4>
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                     <div style="display: flex; justify-content: space-between;">
@@ -303,6 +456,82 @@ const ReportsView = {
                     </div>
                 </div>
             </div>
+            
+            ${report.byCategory && report.byCategory.length > 0 ? `
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <h4 style="margin-bottom: 1rem;">Rentabilidad por Categoría</h4>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Categoría</th>
+                                    <th>Ingresos</th>
+                                    <th>Costos</th>
+                                    <th>Ganancia</th>
+                                    <th>Margen %</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${report.byCategory.map(cat => `
+                                    <tr>
+                                        <td><strong>${cat.name}</strong></td>
+                                        <td>${formatCLP(cat.revenue)}</td>
+                                        <td style="color: var(--danger);">${formatCLP(cat.cost)}</td>
+                                        <td style="color: ${cat.profit >= 0 ? 'var(--primary)' : 'var(--danger)'};">
+                                            <strong>${formatCLP(cat.profit)}</strong>
+                                        </td>
+                                        <td>
+                                            <span style="color: ${cat.margin >= 0 ? 'var(--primary)' : 'var(--danger)'};">
+                                                ${cat.margin.toFixed(1)}%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            ` : ''}
+            
+            ${report.byProduct && report.byProduct.length > 0 ? `
+                <div class="card">
+                    <h4 style="margin-bottom: 1rem;">Top 20 Productos Más Rentables</h4>
+                    <div class="table-container" style="max-height: 500px; overflow-y: auto;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Producto</th>
+                                    <th>Categoría</th>
+                                    <th>Cant. Vendida</th>
+                                    <th>Ingresos</th>
+                                    <th>Costos</th>
+                                    <th>Ganancia</th>
+                                    <th>Margen %</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${report.byProduct.slice(0, 20).map(p => `
+                                    <tr>
+                                        <td><strong>${p.name}</strong></td>
+                                        <td><small>${p.category}</small></td>
+                                        <td>${formatNumber(p.quantity)}</td>
+                                        <td>${formatCLP(p.revenue)}</td>
+                                        <td style="color: var(--danger);">${formatCLP(p.cost)}</td>
+                                        <td style="color: ${p.profit >= 0 ? 'var(--primary)' : 'var(--danger)'};">
+                                            <strong>${formatCLP(p.profit)}</strong>
+                                        </td>
+                                        <td>
+                                            <span style="color: ${p.margin >= 0 ? 'var(--primary)' : 'var(--danger)'};">
+                                                ${p.margin.toFixed(1)}%
+                                            </span>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            ` : ''}
         `;
     },
     

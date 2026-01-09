@@ -13,6 +13,9 @@ class Purchase {
         const purchaseId = await db.add('purchases', purchase);
         
         for (const item of purchase.items) {
+            // Actualizar costo medio antes de actualizar stock
+            await Product.updateCostWithAverage(item.productId, item.quantity, item.cost);
+            
             await Product.updateStock(item.productId, item.quantity, 'add');
             
             await StockMovement.create({

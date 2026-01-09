@@ -52,11 +52,37 @@ class Product {
     static async search(term) {
         const products = await this.getAll();
         const searchTerm = term.toLowerCase();
-        return products.filter(p => 
+        
+        // Filter first
+        const filtered = products.filter(p => 
             p.name.toLowerCase().includes(searchTerm) ||
             p.barcode.includes(searchTerm) ||
             p.description.toLowerCase().includes(searchTerm)
         );
+
+        // Sort by relevance
+        // 1. Exact match on name
+        // 2. Starts with name
+        // 3. Contains in name
+        // 4. Barcode match
+        // 5. Description match
+        return filtered.sort((a, b) => {
+            const nameA = a.name.toLowerCase();
+            const nameB = b.name.toLowerCase();
+            
+            // Exact match priority
+            if (nameA === searchTerm && nameB !== searchTerm) return -1;
+            if (nameB === searchTerm && nameA !== searchTerm) return 1;
+            
+            // Starts with priority
+            const startsA = nameA.startsWith(searchTerm);
+            const startsB = nameB.startsWith(searchTerm);
+            if (startsA && !startsB) return -1;
+            if (startsB && !startsA) return 1;
+            
+            // Fallback to alphabetical if relevance is same
+            return nameA.localeCompare(nameB);
+        });
     }
 
     static async getByCategory(category) {
@@ -89,6 +115,33 @@ class Product {
         if (!product) throw new Error('Producto no encontrado');
         
         product.price = parseFloat(newPrice);
+        product.updatedAt = new Date().toISOString();
+        return await db.put('products', product);
+    }
+
+    static calculateAverageCost(currentStock, currentCost, newQuantity, newCost) {
+        // Calcular costo medio ponderado
+        const totalCurrent = currentStock * currentCost;
+        const totalNew = newQuantity * newCost;
+        const totalStock = currentStock + newQuantity;
+        
+        if (totalStock === 0) return newCost;
+        
+        return (totalCurrent + totalNew) / totalStock;
+    }
+
+    static async updateCostWithAverage(productId, newQuantity, newCost) {
+        const product = await this.getById(productId);
+        if (!product) throw new Error('Producto no encontrado');
+        
+        const averageCost = this.calculateAverageCost(
+            product.stock,
+            product.cost || 0,
+            newQuantity,
+            newCost
+        );
+        
+        product.cost = averageCost;
         product.updatedAt = new Date().toISOString();
         return await db.put('products', product);
     }

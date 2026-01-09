@@ -1,50 +1,77 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
-const sqlite3 = require("sqlite3").verbose();
+const { connect } = require("./database/connection");
+const { initProductsTable, addProduct, getAllProducts } = require("./database/products");
 
-let db;
-
+/**
+ * Crea la ventana principal de la aplicación
+ */
 function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: path.join(__dirname, "preload.js")
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false
     }
   });
 
   win.loadFile("index.html");
 }
 
-app.whenReady().then(() => {
-  const dbPath = path.join(app.getPath("userData"), "ventas.db");
-  db = new sqlite3.Database(dbPath);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS productos (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      nombre TEXT,
-      precio INTEGER,
-      stock INTEGER
-    )
-  `);
-
-  createWindow();
-});
- ipcMain.handle("agregarProducto", (e, producto) => {
-  return new Promise((resolve, reject) => {
-    db.run(
-      "INSERT INTO productos(nombre, precio, stock) VALUES (?, ?, ?)",
-      [producto.nombre, producto.precio, producto.stock],
-      (err) => err ? reject(err) : resolve(true)
-    );
-  });
+/**
+ * Inicialización de la aplicación
+ */
+app.whenReady().then(async () => {
+  try {
+    // 1. Conectar a la base de datos
+    await connect(app.getPath("userData"));
+    
+    // 2. Inicializar tablas
+    await initProductsTable();
+    
+    // 3. Crear ventana
+    createWindow();
+  } catch (error) {
+    console.error("❌ Fatal error during startup:", error);
+    app.quit();
+  }
 });
 
-ipcMain.handle("listarProductos", () => {
-  return new Promise((resolve, reject) => {
-    db.all("SELECT * FROM productos", (err, rows) => {
-      err ? reject(err) : resolve(rows);
-    });
-  });
+/**
+ * IPC: Agregar producto
+ */
+ipcMain.handle("agregarProducto", async (event, producto) => {
+  try {
+    // La validación ahora ocurre dentro de addProduct
+    const id = await addProduct(producto);
+    return true;
+  } catch (error) {
+    console.error("IPC Error adding product:", error.message);
+    throw error; // Re-throw to be caught by renderer
+  }
+});
+
+/**
+ * IPC: Listar productos
+ */
+ipcMain.handle("listarProductos", async () => {
+  try {
+    return await getAllProducts();
+  } catch (error) {
+    console.error("IPC Error fetching products:", error.message);
+    throw error;
+  }
+});
+
+/**
+ * Cierre limpio de la base de datos
+ * Note: sqlite3 connection usually closes on process exit, 
+ * but explicit closing can be added to connection.js if needed.
+ */
+app.on("window-all-closed", () => {
+  if (process.platform !== "darwin") {
+    app.quit();
+  }
 });

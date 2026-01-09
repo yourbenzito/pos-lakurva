@@ -183,7 +183,7 @@ const ProductsView = {
         const product = id ? await Product.getById(id) : null;
         
         const content = `
-            <form id="productForm" onsubmit="ProductsView.saveProduct(event, ${id})">
+            <form id="productForm">
                 <div class="form-row">
                     <div class="form-group">
                         <label>Código de Barras</label>
@@ -249,7 +249,7 @@ const ProductsView = {
         
         const footer = `
             <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-            <button class="btn btn-primary" onclick="document.getElementById('productForm').requestSubmit()">
+            <button class="btn btn-primary" onclick="ProductsView.saveProduct(null, ${id})">
                 ${id ? 'Actualizar' : 'Crear'}
             </button>
         `;
@@ -264,6 +264,7 @@ const ProductsView = {
         setTimeout(() => {
             const costInput = document.getElementById('productCost');
             const priceInput = document.getElementById('productPrice');
+            const form = document.getElementById('productForm'); // Added form reference
             
             if (costInput && priceInput) {
                 costInput.addEventListener('input', (e) => {
@@ -274,13 +275,27 @@ const ProductsView = {
                     }
                 });
             }
+
+            // Handle Enter key for form submission
+            if (form) {
+                form.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        // Prevent default if active element is not a textarea
+                        if (document.activeElement.tagName !== 'TEXTAREA') {
+                            e.preventDefault();
+                            ProductsView.saveProduct(e, id);
+                        }
+                    }
+                });
+            }
         }, 100);
     },
     
     async saveProduct(event, id) {
-        event.preventDefault();
+        if (event) event.preventDefault();
         
-        const formData = new FormData(event.target);
+        const form = document.getElementById('productForm');
+        const formData = new FormData(form);
         const data = Object.fromEntries(formData);
         
         if (id) data.id = id;

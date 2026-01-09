@@ -1,5 +1,5 @@
 class CashRegister {
-    static async open(initialAmount) {
+    static async open(initialAmount, denominations = null) {
         const openCash = await this.getOpen();
         if (openCash) {
             throw new Error('Ya existe una caja abierta');
@@ -14,6 +14,7 @@ class CashRegister {
             difference: 0,
             status: 'open',
             userId: 1,
+            denominations: denominations || null,
             paymentSummary: {
                 cash: 0,
                 card: 0,
