@@ -1,4 +1,5 @@
 const express = require('express');
+const compression = require('compression');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
@@ -146,6 +147,7 @@ const dbAll = (sql, params = []) => new Promise((resolve, reject) => {
     });
 });
 
+app.use(compression());
 app.use(cors());
 app.use(express.json({ limit: '100mb' })); // Permitir backups grandes
 
