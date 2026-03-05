@@ -1,6 +1,6 @@
 const ReportsView = {
     currentReport: 'daily',
-    
+
     async render() {
         return `
             <div class="view-header">
@@ -8,46 +8,58 @@ const ReportsView = {
                 <p>Análisis y estadísticas del negocio</p>
             </div>
             
-            <div class="card">
+            <div class="card glass-panel pos-panel">
                 <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
                     <button class="btn ${this.currentReport === 'daily' ? 'btn-primary' : 'btn-secondary'}" 
                             onclick="ReportsView.showReport('daily')">
-                        Ventas Diarias
+                        📅 Ventas del Día
                     </button>
                     <button class="btn ${this.currentReport === 'weekly' ? 'btn-primary' : 'btn-secondary'}" 
                             onclick="ReportsView.showReport('weekly')">
-                        Ventas Semanales
+                        📈 Ventas de la Semana
                     </button>
                     <button class="btn ${this.currentReport === 'monthly' ? 'btn-primary' : 'btn-secondary'}" 
                             onclick="ReportsView.showReport('monthly')">
-                        Ventas Mensuales
+                        🗓️ Reporte Mensual
                     </button>
                     <button class="btn ${this.currentReport === 'products' ? 'btn-primary' : 'btn-secondary'}" 
                             onclick="ReportsView.showReport('products')">
-                        Por Producto
+                        📦 Vendido por Producto
                     </button>
                     <button class="btn ${this.currentReport === 'profitability' ? 'btn-primary' : 'btn-secondary'}" 
                             onclick="ReportsView.showReport('profitability')">
-                        Rentabilidad
+                        💰 Ganancias y Utilidad
                     </button>
                     <button class="btn ${this.currentReport === 'stock' ? 'btn-primary' : 'btn-secondary'}" 
                             onclick="ReportsView.showReport('stock')">
-                        Stock
+                        📋 Estado de Inventario
+                    </button>
+                    <button class="btn ${this.currentReport === 'stagnant' ? 'btn-primary' : 'btn-secondary'}" 
+                            onclick="ReportsView.showReport('stagnant')">
+                        ⏳ Productos sin Venta
+                    </button>
+                    <button class="btn ${this.currentReport === 'iva' ? 'btn-primary' : 'btn-secondary'}" 
+                            onclick="ReportsView.showReport('iva')">
+                        📑 Resumen de IVA (Fiscal)
+                    </button>
+                    <button class="btn ${this.currentReport === 'costAlerts' ? 'btn-primary' : 'btn-secondary'}" 
+                            onclick="ReportsView.showReport('costAlerts')">
+                        ⚠️ Cambios de Costos
                     </button>
                 </div>
                 
-                <div id="reportContent">
+                <div id="reportContent" class="pos-section">
                     ${await this.renderDailyReport()}
                 </div>
             </div>
         `;
     },
-    
-    async showReport(type) {
+
+    async showReport(type, ...args) {
         this.currentReport = type;
-        
+
         let content = '';
-        switch(type) {
+        switch (type) {
             case 'daily':
                 content = await this.renderDailyReport();
                 break;
@@ -55,7 +67,7 @@ const ReportsView = {
                 content = await this.renderWeeklyReport();
                 break;
             case 'monthly':
-                content = await this.renderMonthlyReport();
+                content = await this.renderMonthlyReport(...args);
                 break;
             case 'products':
                 content = await this.renderProductsReport();
@@ -66,86 +78,132 @@ const ReportsView = {
             case 'stock':
                 content = await this.renderStockReport();
                 break;
+            case 'stagnant':
+                content = await this.renderStagnantReport(...args);
+                break;
+            case 'iva':
+                content = await this.renderIVAReport(...args);
+                break;
+            case 'costAlerts':
+                content = await this.renderCostAlertsReport();
+                break;
         }
-        
+
         document.getElementById('reportContent').innerHTML = content;
-        
+
+        // Renderizar gráficos si corresponde
+        if (['daily', 'weekly', 'monthly', 'products', 'profitability'].includes(type)) {
+            // Un pequeño delay asegura que el DOM se haya renderizado completamente
+            setTimeout(() => this.renderCharts(type), 150);
+        }
+
         const buttons = document.querySelectorAll('.card button');
         buttons.forEach(btn => {
-            btn.className = btn.onclick.toString().includes(`'${type}'`) ? 'btn btn-primary' : 'btn btn-secondary';
+            if (btn.onclick && btn.onclick.toString().includes(`showReport('${type}'`)) {
+                btn.className = 'btn btn-primary';
+            } else if (btn.onclick && btn.onclick.toString().includes(`showReport(`)) {
+                if (!btn.onclick.toString().includes(`showReport('${type}',`)) {
+                    btn.className = 'btn btn-secondary';
+                }
+            }
         });
     },
-    
+
+    async renderCharts(type) {
+        // Se elimina la lógica de gráficos por solicitud del usuario
+    },
+
     async renderDailyReport() {
         const today = new Date();
         const report = await ReportController.getDailySales(today);
-        
-        // Calcular totales por método de pago
-        const paymentMethods = { cash: 0, card: 0, qr: 0, other: 0 };
+
+        const paymentMethods = { cash: 0, card: 0, qr: 0, other: 0, pending: 0 };
         report.sales.forEach(sale => {
+            // 1. Sumar lo que se pagó realmente a los métodos de pago
             if (sale.paymentDetails) {
                 Object.entries(sale.paymentDetails).forEach(([method, amount]) => {
                     if (paymentMethods[method] !== undefined) {
-                        paymentMethods[method] += parseFloat(amount);
+                        paymentMethods[method] += parseFloat(amount) || 0;
                     }
                 });
             } else {
                 const method = sale.paymentMethod || 'cash';
-                paymentMethods[method] += sale.total;
+                if (paymentMethods[method] !== undefined) {
+                    paymentMethods[method] += parseFloat(sale.paidAmount !== undefined ? sale.paidAmount : sale.total) || 0;
+                }
+            }
+
+            // 2. Sumar la deuda pendiente a la categoría 'pending'
+            const total = parseFloat(sale.total) || 0;
+            const paid = parseFloat(sale.paidAmount !== undefined ? sale.paidAmount : (sale.status === 'completed' ? total : 0)) || 0;
+            const pending = Math.max(0, total - paid);
+            if (pending > 0) {
+                paymentMethods.pending += pending;
             }
         });
-        
+
         return `
-            <h3>Ventas de Hoy - ${formatDate(today)}</h3>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <h3>Ventas de Hoy - ${formatDate(today)}</h3>
+                <button class="btn btn-secondary" onclick="ReportsView.exportToPDF('daily', ${JSON.stringify(report).replace(/"/g, '&quot;')})" style="background-color: #dc2626; color: white; border-color: #dc2626;">
+                    📄 Exportar PDF
+                </button>
+            </div>
             
-            <div class="grid grid-4" style="margin: 1.5rem 0;">
+            <div class="grid grid-6" style="margin: 1.5rem 0;">
                 <div class="stat-card">
-                    <h3>Número de Ventas</h3>
+                    <h3>Ventas</h3>
                     <div class="value">${report.totalSales}</div>
                 </div>
                 <div class="stat-card">
                     <h3>Total Vendido</h3>
                     <div class="value" style="color: var(--secondary);">${formatCLP(report.totalAmount)}</div>
                 </div>
-                <div class="stat-card">
-                    <h3>Promedio por Venta</h3>
-                    <div class="value" style="color: var(--primary);">
-                        ${formatCLP(report.totalSales > 0 ? report.totalAmount / report.totalSales : 0)}
-                    </div>
+                <div class="stat-card" style="border-bottom: 3px solid #f87171;">
+                    <h3 style="color: #f87171;">📉 Dinero para Impuestos (IVA)</h3>
+                    <div class="value" style="color: #f87171;">${formatCLP(report.ivaDebito)}</div>
+                    <small style="opacity: 0.8; display: block; margin-top: 0.2rem;">Dinero que debes guardar para el SII.</small>
                 </div>
-                <div class="stat-card">
-                    <h3>Ticket Promedio</h3>
-                    <div class="value" style="color: var(--primary);">
-                        ${formatCLP(report.totalSales > 0 ? report.totalAmount / report.totalSales : 0)}
+                <div class="stat-card" style="border-bottom: 3px solid #34d399;">
+                    <h3 style="color: #34d399;">📈 IVA a mi favor (Compras)</h3>
+                    <div class="value" style="color: #34d399;">${formatCLP(report.ivaCredito)}</div>
+                    <small style="opacity: 0.8; display: block; margin-top: 0.2rem;">Descuento por tus facturas de compra.</small>
+                </div>
+                <div class="stat-card" style="border-bottom: 3px solid #60a5fa;">
+                    <h3 style="color: #60a5fa;">💰 Venta Limpia (Sin IVA)</h3>
+                    <div class="value" style="color: #60a5fa; font-weight: 800;">
+                        ${formatCLP(report.totalAmount - report.ivaDebito)}
                     </div>
+                    <small style="opacity: 0.8; display: block; margin-top: 0.2rem;">Total vendido quitando los impuestos.</small>
+                </div>
+                <div class="stat-card" style="border-bottom: 3px solid #10b981; background: rgba(16, 185, 129, 0.05);">
+                    <h3 style="color: #10b981; font-weight: bold;">💎 Mi Ganancia Real (Bolsillo)</h3>
+                    <div class="value" style="color: #10b981; font-weight: 900;">
+                        ${formatCLP(report.realProfit)}
+                    </div>
+                    <small style="opacity: 0.9; font-weight: 500; display: block; margin-top: 0.2rem;">¡Tu dinero libre tras recuperar costos!</small>
                 </div>
             </div>
             
-            <div class="card" style="margin-bottom: 1.5rem;">
-                <h4 style="margin-bottom: 1rem;">Total por Método de Pago</h4>
-                <div class="grid grid-4">
-                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
-                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">💵 Efectivo</div>
-                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
-                            ${formatCLP(paymentMethods.cash)}
+            <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div class="card glass-panel" style="padding: 1.5rem;">
+                    <h4 style="margin-bottom: 1rem;">Total por Método de Pago</h4>
+                    <div class="grid grid-2">
+                        <div style="text-align: center; padding: 0.75rem; background: var(--light); border-radius: 0.375rem;">
+                            <div style="font-size: 0.85rem; color: var(--secondary);">💵 Efectivo</div>
+                            <div style="font-size: 1.15rem; font-weight: bold; color: var(--primary);">${formatCLP(paymentMethods.cash)}</div>
                         </div>
-                    </div>
-                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
-                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">💳 Tarjeta</div>
-                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
-                            ${formatCLP(paymentMethods.card)}
+                        <div style="text-align: center; padding: 0.75rem; background: var(--light); border-radius: 0.375rem;">
+                            <div style="font-size: 0.85rem; color: var(--secondary);">💳 Tarjeta</div>
+                            <div style="font-size: 1.15rem; font-weight: bold; color: var(--primary);">${formatCLP(paymentMethods.card)}</div>
                         </div>
-                    </div>
-                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
-                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">📱 QR</div>
-                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
-                            ${formatCLP(paymentMethods.qr)}
+                        <div style="text-align: center; padding: 0.75rem; background: var(--light); border-radius: 0.375rem;">
+                            <div style="font-size: 0.85rem; color: var(--secondary);">📱 QR</div>
+                            <div style="font-size: 1.15rem; font-weight: bold; color: var(--primary);">${formatCLP(paymentMethods.qr)}</div>
                         </div>
-                    </div>
-                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
-                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">➕ Otro</div>
-                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
-                            ${formatCLP(paymentMethods.other)}
+                        <div style="text-align: center; padding: 0.75rem; background: rgba(248, 113, 113, 0.1); border-radius: 0.375rem; border: 1px solid rgba(248, 113, 113, 0.2);">
+                            <div style="font-size: 0.85rem; color: #ef4444;">📝 Anotado (Deuda)</div>
+                            <div style="font-size: 1.15rem; font-weight: bold; color: #dc2626;">${formatCLP(paymentMethods.pending)}</div>
                         </div>
                     </div>
                 </div>
@@ -153,79 +211,48 @@ const ReportsView = {
             
             ${this.renderSalesTable(report.sales)}
         `;
-    },
-    
-    async updatePayment(saleId) {
-        const sale = await Sale.getById(saleId);
-        
-        const content = `
-            <div style="margin-bottom: 1.5rem;">
-                <p><strong>Venta #${sale.saleNumber}</strong></p>
-                <p>Total: ${formatCLP(sale.total)}</p>
-                <p>Método actual: ${this.getPaymentMethodName(sale.paymentMethod)}</p>
-            </div>
-            
-            <div class="form-group">
-                <label>Nuevo Método de Pago</label>
-                <select id="newPaymentMethod" class="form-control">
-                    <option value="cash" ${sale.paymentMethod === 'cash' ? 'selected' : ''}>Efectivo</option>
-                    <option value="card" ${sale.paymentMethod === 'card' ? 'selected' : ''}>Tarjeta</option>
-                    <option value="qr" ${sale.paymentMethod === 'qr' ? 'selected' : ''}>QR</option>
-                    <option value="other" ${sale.paymentMethod === 'other' ? 'selected' : ''}>Otro</option>
-                </select>
-            </div>
-            
-            <div style="background: #fef3c7; padding: 0.75rem; border-radius: 0.375rem; font-size: 0.85rem; margin-top: 1rem;">
-                ⚠️ Al cambiar el método de pago, si era un pago mixto, se convertirá en un pago único del nuevo método seleccionado.
-            </div>
-        `;
-        
-        const footer = `
-            <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-            <button class="btn btn-primary" onclick="ReportsView.savePaymentUpdate(${saleId})">Guardar Cambios</button>
-        `;
-        
-        showModal(content, { title: 'Corregir Método de Pago', footer, width: '400px' });
-    },
-    
-    async savePaymentUpdate(saleId) {
-        const newMethod = document.getElementById('newPaymentMethod').value;
-        try {
-            await ReportController.updateSalePayment(saleId, newMethod);
-            closeModal();
-            showNotification('Método de pago actualizado', 'success');
-            // Refresh current report
-            this.showReport(this.currentReport);
-        } catch (error) {
-            showNotification('Error: ' + error.message, 'error');
-        }
-    },
-    
+    }
+    ,
+
     async renderWeeklyReport() {
         const report = await ReportController.getWeeklySales();
-        
-        // Calcular totales por método de pago
-        const paymentMethods = { cash: 0, card: 0, qr: 0, other: 0 };
+
+        const paymentMethods = { cash: 0, card: 0, qr: 0, other: 0, pending: 0 };
         report.sales.forEach(sale => {
             if (sale.paymentDetails) {
                 Object.entries(sale.paymentDetails).forEach(([method, amount]) => {
                     if (paymentMethods[method] !== undefined) {
-                        paymentMethods[method] += parseFloat(amount);
+                        paymentMethods[method] += parseFloat(amount) || 0;
                     }
                 });
             } else {
                 const method = sale.paymentMethod || 'cash';
-                paymentMethods[method] += sale.total;
+                if (paymentMethods[method] !== undefined) {
+                    paymentMethods[method] += parseFloat(sale.paidAmount !== undefined ? sale.paidAmount : sale.total) || 0;
+                }
+            }
+            const total = parseFloat(sale.total) || 0;
+            const paid = parseFloat(sale.paidAmount !== undefined ? sale.paidAmount : (sale.status === 'completed' ? total : 0)) || 0;
+            const pending = Math.max(0, total - paid);
+            if (pending > 0) {
+                paymentMethods.pending += pending;
             }
         });
-        
+
         return `
-            <h3>Ventas Semanales</h3>
-            <p>${formatDate(report.startDate)} - ${formatDate(report.endDate)}</p>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                    <h3>Ventas Semanales</h3>
+                    <p>${formatDate(report.startDate)} - ${formatDate(report.endDate)}</p>
+                </div>
+                <button class="btn btn-secondary" onclick="ReportsView.exportToPDF('weekly', ${JSON.stringify(report).replace(/"/g, '&quot;')})" style="background-color: #dc2626; color: white; border-color: #dc2626;">
+                    📄 Exportar PDF
+                </button>
+            </div>
             
-            <div class="grid grid-4" style="margin: 1.5rem 0;">
+            <div class="grid grid-6" style="margin: 1.5rem 0;">
                 <div class="stat-card">
-                    <h3>Número de Ventas</h3>
+                    <h3>Ventas Totales</h3>
                     <div class="value">${report.totalSales}</div>
                 </div>
                 <div class="stat-card">
@@ -233,44 +260,47 @@ const ReportsView = {
                     <div class="value" style="color: var(--secondary);">${formatCLP(report.totalAmount)}</div>
                 </div>
                 <div class="stat-card">
-                    <h3>Promedio por Venta</h3>
-                    <div class="value" style="color: var(--primary);">
-                        ${formatCLP(report.totalSales > 0 ? report.totalAmount / report.totalSales : 0)}
-                    </div>
+                    <h3>IVA Débito</h3>
+                    <div class="value" style="color: #f87171;">${formatCLP(report.ivaDebito)}</div>
                 </div>
                 <div class="stat-card">
-                    <h3>Promedio Diario</h3>
-                    <div class="value" style="color: var(--primary);">
-                        ${formatCLP(report.totalSales > 0 ? report.totalAmount / 7 : 0)}
+                    <h3>IVA Crédito</h3>
+                    <div class="value" style="color: #34d399;">${formatCLP(report.ivaCredito)}</div>
+                </div>
+                <div class="stat-card">
+                    <h3>IVA a Pagar (SII)</h3>
+                    <div class="value" style="color: #f87171;">
+                        ${formatCLP(Math.max(0, report.ivaDebito - report.ivaCredito))}
                     </div>
+                </div>
+                <div class="stat-card" title="Venta Neta Total - Costo Neto Total">
+                    <h3>Ganancia Bruta Real</h3>
+                    <div class="value" style="color: #34d399; font-weight: 900;">
+                        ${formatCLP(report.realProfit)}
+                    </div>
+                    <small style="opacity: 0.6; font-size: 0.7rem;">Utilidad real sin impuestos.</small>
                 </div>
             </div>
             
-            <div class="card" style="margin-bottom: 1.5rem;">
-                <h4 style="margin-bottom: 1rem;">Total por Método de Pago</h4>
-                <div class="grid grid-4">
-                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
-                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">💵 Efectivo</div>
-                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
-                            ${formatCLP(paymentMethods.cash)}
+            <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div class="card glass-panel" style="padding: 1.5rem;">
+                    <h4 style="margin-bottom: 1rem;">Total por Método de Pago</h4>
+                    <div class="grid grid-2">
+                        <div style="text-align: center; padding: 0.75rem; background: var(--light); border-radius: 0.375rem;">
+                            <div style="font-size: 0.85rem; color: var(--secondary);">💵 Efectivo</div>
+                            <div style="font-size: 1.15rem; font-weight: bold; color: var(--primary);">${formatCLP(paymentMethods.cash)}</div>
                         </div>
-                    </div>
-                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
-                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">💳 Tarjeta</div>
-                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
-                            ${formatCLP(paymentMethods.card)}
+                        <div style="text-align: center; padding: 0.75rem; background: var(--light); border-radius: 0.375rem;">
+                            <div style="font-size: 0.85rem; color: var(--secondary);">💳 Tarjeta</div>
+                            <div style="font-size: 1.15rem; font-weight: bold; color: var(--primary);">${formatCLP(paymentMethods.card)}</div>
                         </div>
-                    </div>
-                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
-                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">📱 QR</div>
-                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
-                            ${formatCLP(paymentMethods.qr)}
+                        <div style="text-align: center; padding: 0.75rem; background: var(--light); border-radius: 0.375rem;">
+                            <div style="font-size: 0.85rem; color: var(--secondary);">📱 QR</div>
+                            <div style="font-size: 1.15rem; font-weight: bold; color: var(--primary);">${formatCLP(paymentMethods.qr)}</div>
                         </div>
-                    </div>
-                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
-                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">➕ Otro</div>
-                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
-                            ${formatCLP(paymentMethods.other)}
+                        <div style="text-align: center; padding: 0.75rem; background: rgba(248, 113, 113, 0.1); border-radius: 0.375rem; border: 1px solid rgba(248, 113, 113, 0.2);">
+                            <div style="font-size: 0.85rem; color: #ef4444;">📝 Anotado (Deuda)</div>
+                            <div style="font-size: 1.15rem; font-weight: bold; color: #dc2626;">${formatCLP(paymentMethods.pending)}</div>
                         </div>
                     </div>
                 </div>
@@ -278,97 +308,326 @@ const ReportsView = {
             
             ${this.renderSalesTable(report.sales)}
         `;
-    },
-    
-    async renderMonthlyReport() {
+    }
+    ,
+
+    async renderMonthlyReport(selectedYear, selectedMonth) {
         const now = new Date();
-        const report = await ReportController.getMonthlySales(now.getFullYear(), now.getMonth());
-        
-        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
-                           'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-        
-        // Calcular totales por método de pago
-        const paymentMethods = { cash: 0, card: 0, qr: 0, other: 0 };
+        const currentYear = selectedYear !== undefined ? selectedYear : now.getFullYear();
+        const currentMonth = selectedMonth !== undefined ? selectedMonth : now.getMonth();
+
+        const allSales = await Sale.getAll();
+        const monthsWithSales = new Set();
+        allSales.forEach(sale => {
+            const saleDate = new Date(sale.date);
+            monthsWithSales.add(`${saleDate.getFullYear()}-${saleDate.getMonth()}`);
+        });
+
+        const report = await ReportController.getMonthlySales(currentYear, currentMonth);
+
+        const previousMonthsReports = [];
+        for (let i = 1; i <= 3; i++) {
+            const prevDate = new Date(currentYear, currentMonth - i, 1);
+            const prevYear = prevDate.getFullYear();
+            const prevMonth = prevDate.getMonth();
+            const monthKey = `${prevYear}-${prevMonth}`;
+
+            if (monthsWithSales.has(monthKey)) {
+                const prevReport = await ReportController.getMonthlySales(prevYear, prevMonth);
+                previousMonthsReports.push(prevReport);
+            }
+        }
+
+        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+        const startOfMonth = new Date(currentYear, currentMonth, 1);
+        const endOfMonth = new Date(currentYear, currentMonth + 1, 0);
+        const isCurrentMonth = currentYear === now.getFullYear() && currentMonth === now.getMonth();
+        const periodEnd = isCurrentMonth ? now : endOfMonth;
+        const daysInPeriod = Math.ceil((periodEnd - startOfMonth) / (1000 * 60 * 60 * 24)) + 1;
+        const totalDaysInMonth = endOfMonth.getDate();
+
+        const paymentMethods = { cash: 0, card: 0, qr: 0, other: 0, pending: 0 };
         report.sales.forEach(sale => {
             if (sale.paymentDetails) {
                 Object.entries(sale.paymentDetails).forEach(([method, amount]) => {
                     if (paymentMethods[method] !== undefined) {
-                        paymentMethods[method] += parseFloat(amount);
+                        paymentMethods[method] += parseFloat(amount) || 0;
                     }
                 });
             } else {
                 const method = sale.paymentMethod || 'cash';
-                paymentMethods[method] += sale.total;
+                if (paymentMethods[method] !== undefined) {
+                    paymentMethods[method] += parseFloat(sale.paidAmount !== undefined ? sale.paidAmount : sale.total) || 0;
+                }
+            }
+            const total = parseFloat(sale.total) || 0;
+            const paid = parseFloat(sale.paidAmount !== undefined ? sale.paidAmount : (sale.status === 'completed' ? total : 0)) || 0;
+            const pending = Math.max(0, total - paid);
+            if (pending > 0) {
+                paymentMethods.pending += pending;
             }
         });
-        
+
         return `
-            <h3>Ventas de ${monthNames[report.month]} ${report.year}</h3>
-            
-            <div class="grid grid-4" style="margin: 1.5rem 0;">
-                <div class="stat-card">
-                    <h3>Número de Ventas</h3>
-                    <div class="value">${report.totalSales}</div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h3 style="margin: 0;">Ventas de ${monthNames[report.month]} ${report.year}</h3>
+                    <p style="margin: 0.5rem 0 0 0; color: var(--secondary); font-size: 0.9rem;">
+                        Período: ${formatDate(startOfMonth)} - ${formatDate(periodEnd)} 
+                        ${isCurrentMonth ? `(${daysInPeriod} de ${totalDaysInMonth} días)` : `(${totalDaysInMonth} días completos)`}
+                    </p>
                 </div>
-                <div class="stat-card">
-                    <h3>Total Vendido</h3>
-                    <div class="value" style="color: var(--secondary);">${formatCLP(report.totalAmount)}</div>
-                </div>
-                <div class="stat-card">
-                    <h3>Promedio por Venta</h3>
-                    <div class="value" style="color: var(--primary);">
-                        ${formatCLP(report.totalSales > 0 ? report.totalAmount / report.totalSales : 0)}
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <button class="btn btn-primary" onclick="ReportsView.showReport('iva', ${currentYear}, ${currentMonth})">
+                        🔍 Ver Detalle IVA
+                    </button>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--light); padding: 0.5rem 1rem; border-radius: 0.5rem;">
+                        <label for="monthPicker" style="font-size: 0.85rem; font-weight: 600; color: var(--secondary);">Seleccionar Mes:</label>
+                        <input type="month" id="monthPicker" class="form-control" 
+                               value="${currentYear}-${String(currentMonth + 1).padStart(2, '0')}" 
+                               onchange="ReportsView.handleMonthChange(this.value)"
+                               style="padding: 0.25rem 0.5rem; height: auto; width: auto; background: transparent; border: 1px solid var(--border);">
                     </div>
                 </div>
-                <div class="stat-card">
-                    <h3>Promedio Diario</h3>
-                    <div class="value" style="color: var(--primary);">
-                        ${formatCLP(report.totalSales > 0 ? report.totalAmount / 30 : 0)}
+                <button class="btn btn-secondary" onclick="ReportsView.exportToPDF('monthly', ${JSON.stringify(report).replace(/"/g, '&quot;')})" style="background-color: #dc2626; color: white; border-color: #dc2626;">
+                    📄 PDF
+                </button>
+            </div>
+            
+            <div class="grid grid-3" style="margin: 1.5rem 0; gap: 1.5rem;">
+                <!-- Ganancia de Bolsillo -->
+                <div class="stat-card glass-panel" style="border-bottom: 4px solid var(--primary); padding: 1.5rem; position: relative;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <h3 style="margin: 0; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8;">💰 Ganancia de Bolsillo</h3>
+                        <span title="Dinero físico que queda tras vender. (Total Venta - Costo que pagaste)" style="cursor: help; background: rgba(255,255,255,0.1); border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">?</span>
+                    </div>
+                    <div class="value" style="color: #60a5fa; font-size: 2.2rem;">${formatCLP(report.pocketProfit)}</div>
+                    <p style="font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.6; line-height: 1.2;">
+                        Cálculo: (Venta Total) - (Costo Bruto pagado al proveedor).<br>
+                        <strong>Es el dinero real que entró a tu caja hoy.</strong>
+                    </p>
+                </div>
+
+                <!-- Ganancia Real -->
+                <div class="stat-card glass-panel" style="border-bottom: 4px solid #34d399; padding: 1.5rem; position: relative;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <h3 style="margin: 0; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8;">📈 Ganancia Bruta Real</h3>
+                        <span title="Tu utilidad real considerando que las ventas internas son 100% tuyas y las boletas pagan IVA." style="cursor: help; background: rgba(255,255,255,0.1); border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">?</span>
+                    </div>
+                    <div class="value" style="color: #34d399; font-size: 2.2rem;">${formatCLP(report.realProfit)}</div>
+                    <p style="font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.6; line-height: 1.2;">
+                        Cálculo: (Ventas Internas) + (Ventas Boleta Neta) - (Costos Netos).<br>
+                        <strong>Es el pozo de dinero real que te pertenece legalmente.</strong>
+                    </p>
+                </div>
+
+                <!-- Impuestos SII (Clickable for Modal Detail) -->
+                <div class="stat-card glass-panel clickable" 
+                     onclick="ReportsView.showIVADetailModal('debito', ${report.year}, ${report.month})"
+                     style="border-bottom: 4px solid #f87171; padding: 1.5rem; position: relative; cursor: pointer; transition: transform 0.2s;"
+                     onmouseover="this.style.transform='translateY(-5px)'"
+                     onmouseout="this.style.transform='translateY(0)'">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <h3 style="margin: 0; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8;">⚖️ IVA a Declarar</h3>
+                        <span title="Haz clic para ver el detalle de facturas y ventas." style="cursor: help; background: var(--primary); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem;">i</span>
+                    </div>
+                    <div class="value" style="color: #f87171; font-size: 2.2rem;">${formatCLP(Math.max(0, report.ivaDebito - report.ivaCredito))}</div>
+                    <div style="font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.6; line-height: 1.2;">
+                        <span style="color: #f87171;">(-) IVA Débito Ventas: ${formatCLP(report.ivaDebito)}</span><br>
+                        <span style="color: #34d399;">(+) IVA Crédito Compras: ${formatCLP(report.ivaCredito)}</span>
+                        <div style="text-align: right; font-weight: bold; margin-top: 0.5rem; color: var(--primary);">Versión Detallada (Ver) →</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-4" style="margin: 1.5rem 0; gap: 1rem;">
+                <div class="stat-card" style="padding: 1rem;">
+                    <h3 style="font-size: 0.8rem; opacity: 0.7;">Venta Total</h3>
+                    <div class="value" style="font-size: 1.4rem;">${formatCLP(report.totalAmount)}</div>
+                </div>
+                <div class="stat-card" style="padding: 1rem; cursor: pointer;" onclick="ReportsView.showIVADetailModal('credito', ${report.year}, ${report.month})">
+                    <h3 style="font-size: 0.8rem; opacity: 0.7;">Costo Total Pagado (Ver Facturas)</h3>
+                    <div class="value" style="font-size: 1.4rem; color: #94a3b8;">${formatCLP(report.totalCostGross)}</div>
+                </div>
+                <div class="stat-card" style="padding: 1rem;">
+                    <h3 style="font-size: 0.8rem; opacity: 0.7;">Ventas del Mes</h3>
+                    <div class="value" style="font-size: 1.4rem;">${report.totalSales}</div>
+                </div>
+                <div class="stat-card" style="padding: 1rem;">
+                    <h3 style="font-size: 0.8rem; opacity: 0.7;">Promedio Diario</h3>
+                    <div class="value" style="font-size: 1.4rem;">${formatCLP(report.totalSales > 0 ? report.totalAmount / daysInPeriod : 0)}</div>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div class="card glass-panel" style="padding: 1.5rem;">
+                    <h4 style="margin-bottom: 1rem;">Total por Método de Pago</h4>
+                    <div class="grid grid-2">
+                        <div style="text-align: center; padding: 0.75rem; background: var(--light); border-radius: 0.375rem;">
+                            <div style="font-size: 0.85rem; color: var(--secondary);">💵 Efectivo</div>
+                            <div style="font-size: 1.15rem; font-weight: bold; color: var(--primary);">${formatCLP(paymentMethods.cash)}</div>
+                        </div>
+                        <div style="text-align: center; padding: 0.75rem; background: var(--light); border-radius: 0.375rem;">
+                            <div style="font-size: 0.85rem; color: var(--secondary);">💳 Tarjeta</div>
+                            <div style="font-size: 1.15rem; font-weight: bold; color: var(--primary);">${formatCLP(paymentMethods.card)}</div>
+                        </div>
+                        <div style="text-align: center; padding: 0.75rem; background: var(--light); border-radius: 0.375rem;">
+                            <div style="font-size: 0.85rem; color: var(--secondary);">📱 QR</div>
+                            <div style="font-size: 1.15rem; font-weight: bold; color: var(--primary);">${formatCLP(paymentMethods.qr)}</div>
+                        </div>
+                        <div style="text-align: center; padding: 0.75rem; background: rgba(248, 113, 113, 0.1); border-radius: 0.375rem; border: 1px solid rgba(248, 113, 113, 0.2);">
+                            <div style="font-size: 0.85rem; color: #ef4444;">📝 Anotado (Deuda)</div>
+                            <div style="font-size: 1.15rem; font-weight: bold; color: #dc2626;">${formatCLP(paymentMethods.pending)}</div>
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <div class="card" style="margin-bottom: 1.5rem;">
-                <h4 style="margin-bottom: 1rem;">Total por Método de Pago</h4>
-                <div class="grid grid-4">
-                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
-                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">💵 Efectivo</div>
-                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
-                            ${formatCLP(paymentMethods.cash)}
-                        </div>
-                    </div>
-                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
-                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">💳 Tarjeta</div>
-                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
-                            ${formatCLP(paymentMethods.card)}
-                        </div>
-                    </div>
-                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
-                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">📱 QR</div>
-                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
-                            ${formatCLP(paymentMethods.qr)}
-                        </div>
-                    </div>
-                    <div style="text-align: center; padding: 1rem; background: var(--light); border-radius: 0.375rem;">
-                        <div style="font-size: 0.9rem; color: var(--secondary); margin-bottom: 0.5rem;">➕ Otro</div>
-                        <div style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">
-                            ${formatCLP(paymentMethods.other)}
-                        </div>
+            ${previousMonthsReports.length > 0 ? `
+                <div class="card" style="margin-bottom: 1.5rem;">
+                    <h4 style="margin-bottom: 1rem;">📈 Evolución Mes a Mes</h4>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Mes</th>
+                                    <th>Período</th>
+                                    <th>Ventas</th>
+                                    <th>Total Vendido</th>
+                                    <th>Promedio Diario</th>
+                                    <th>Variación</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr style="background: rgba(99, 102, 241, 0.1); font-weight: bold;">
+                                    <td><strong>${monthNames[report.month]} ${report.year}</strong> (Actual)</td>
+                                    <td>${formatDate(startOfMonth)} - ${formatDate(periodEnd)}</td>
+                                    <td>${report.totalSales}</td>
+                                    <td><strong>${formatCLP(report.totalAmount)}</strong></td>
+                                    <td>${formatCLP(report.totalSales > 0 ? report.totalAmount / daysInPeriod : 0)}</td>
+                                    <td>-</td>
+                                </tr>
+                                ${previousMonthsReports.map((prevReport, idx) => {
+            const prevStartDate = new Date(prevReport.year, prevReport.month, 1);
+            const prevEndDate = new Date(prevReport.year, prevReport.month + 1, 0);
+            const prevDaysInMonth = prevEndDate.getDate();
+            const prevAvgDaily = prevReport.totalSales > 0 ? prevReport.totalAmount / prevDaysInMonth : 0;
+            const currentAvgDaily = report.totalSales > 0 ? report.totalAmount / daysInPeriod : 0;
+            const variation = prevAvgDaily > 0 ? ((currentAvgDaily - prevAvgDaily) / prevAvgDaily * 100) : 0;
+            const variationColor = variation >= 0 ? 'var(--success)' : 'var(--danger)';
+            const variationIcon = variation >= 0 ? '↑' : '↓';
+
+            return `
+                                        <tr>
+                                            <td>${monthNames[prevReport.month]} ${prevReport.year}</td>
+                                            <td>${formatDate(prevStartDate)} - ${formatDate(prevEndDate)} (${prevDaysInMonth} días)</td>
+                                            <td>${prevReport.totalSales}</td>
+                                            <td>${formatCLP(prevReport.totalAmount)}</td>
+                                            <td>${formatCLP(prevAvgDaily)}</td>
+                                            <td style="color: ${variationColor};">
+                                                ${variationIcon} ${Math.abs(variation).toFixed(1)}%
+                                            </td>
+                                        </tr>
+                                    `;
+        }).join('')}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
-            </div>
+            ` : ''}
             
             ${this.renderSalesTable(report.sales)}
         `;
+    }
+    ,
+
+    async renderIVAReport(selectedYear, selectedMonth) {
+        const now = new Date();
+        const year = selectedYear !== undefined ? selectedYear : now.getFullYear();
+        const month = selectedMonth !== undefined ? selectedMonth : now.getMonth();
+        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+            'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
+        const report = await ReportController.getMonthlySales(year, month);
+
+        // Separar compras con factura para el detalle
+        const purchasesWithInvoice = (report.purchases || []).filter(p => p.documentType === 'factura');
+        const netDifference = report.ivaDebito - report.ivaCredito;
+
+        return `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <div>
+                    <h3>Detalle de IVA - ${monthNames[month]} ${year}</h3>
+                    <p style="color: var(--secondary); margin: 0;">Resumen fiscal de impuestos generados y créditos acumulados.</p>
+                </div>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <div style="background: var(--light); padding: 0.5rem 1rem; border-radius: 0.5rem;">
+                        <input type="month" value="${year}-${String(month + 1).padStart(2, '0')}" 
+                               onchange="ReportsView.showReport('iva', ...this.value.split('-').map(v => parseInt(v)).map((v, i) => i === 1 ? v-1 : v))"
+                               style="background: transparent; border: none; font-weight: bold; color: var(--primary);">
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid grid-3" style="margin-bottom: 2rem;">
+                <!-- IVA DÉBITO -->
+                <div class="card clickable" 
+                     onclick="ReportsView.showIVADetailModal('debito', ${year}, ${month})"
+                     style="border-left: 5px solid #f87171; padding: 1.5rem; cursor: pointer; transition: transform 0.2s;"
+                     onmouseover="this.style.transform='translateY(-5px)'"
+                     onmouseout="this.style.transform='translateY(0)'">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span style="font-weight: 600; color: #f87171;">🔴 IVA DÉBITO (Ventas)</span>
+                        <span class="badge badge-danger">19%</span>
+                    </div>
+                    <div style="font-size: 2rem; font-weight: 800; color: var(--text);">${formatCLP(report.ivaDebito)}</div>
+                    <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; opacity: 0.8;">Monto total cobrado en impuestos por tus ventas.</p>
+                    <div style="text-align: right; margin-top: 1rem; color: var(--primary); font-size: 0.8rem; font-weight: bold;">Ver Detalle (Boletas) →</div>
+                </div>
+
+                <!-- IVA CRÉDITO -->
+                <div class="card clickable" 
+                     onclick="ReportsView.showIVADetailModal('credito', ${year}, ${month})"
+                     style="border-left: 5px solid #34d399; padding: 1.5rem; cursor: pointer; transition: transform 0.2s;"
+                     onmouseover="this.style.transform='translateY(-5px)'"
+                     onmouseout="this.style.transform='translateY(0)'">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span style="font-weight: 600; color: #34d399;">🟢 IVA CRÉDITO (Compras)</span>
+                        <span class="badge badge-success">Facturas</span>
+                    </div>
+                    <div style="font-size: 2rem; font-weight: 800; color: var(--text);">${formatCLP(report.ivaCredito)}</div>
+                    <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; opacity: 0.8;">Impuesto a tu favor por compras con factura.</p>
+                    <div style="text-align: right; margin-top: 1rem; color: var(--primary); font-size: 0.8rem; font-weight: bold;">Ver Detalle (Facturas) →</div>
+                </div>
+
+                <!-- DIFERENCIA -->
+                <div class="card" style="border-left: 5px solid ${netDifference > 0 ? '#fbbf24' : '#6366f1'}; padding: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span style="font-weight: 600; color: ${netDifference > 0 ? '#fbbf24' : '#6366f1'};">
+                            ${netDifference > 0 ? '⚖️ TOTAL A PAGAR' : '💰 REMANENTE A FAVOR'}
+                        </span>
+                    </div>
+                    <div style="font-size: 2rem; font-weight: 800; color: var(--text);">${formatCLP(Math.abs(netDifference))}</div>
+                    <p style="margin: 0.5rem 0 0 0; font-size: 0.9rem; opacity: 0.8;">
+                        ${netDifference > 0
+                ? 'Este es el monto aproximado que debes pagar al fisco.'
+                : 'Este monto queda a tu favor para el próximo mes.'}
+                    </p>
+                </div>
+            </div>
+
+        `;
     },
-    
+
     async renderProductsReport() {
         const endDate = new Date();
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - 30);
-        
+
         const products = await ReportController.getSalesByProduct(startDate, endDate);
-        
+
         return `
             <h3>Ventas por Producto (Últimos 30 días)</h3>
             
@@ -385,16 +644,16 @@ const ReportsView = {
                         </thead>
                         <tbody>
                             ${products.map(p => {
-                                const totalSum = products.reduce((sum, item) => sum + item.total, 0);
-                                const percentage = totalSum > 0 ? (p.total / totalSum * 100).toFixed(1) : 0;
-                                return `
+            const totalSum = products.reduce((sum, item) => sum + item.total, 0);
+            const percentage = totalSum > 0 ? (p.total / totalSum * 100).toFixed(1) : 0;
+            return `
                                     <tr>
                                         <td><strong>${p.name}</strong></td>
                                         <td>${formatNumber(p.quantity)}</td>
                                         <td><strong>${formatCLP(p.total)}</strong></td>
                                         <td>
                                             <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                                <div style="width: 100px; height: 20px; background: var(--light); border-radius: 10px; overflow: hidden;">
+                                                <div style="width: 100px; height: 10px; background: var(--light); border-radius: 5px; overflow: hidden;">
                                                     <div style="width: ${percentage}%; height: 100%; background: var(--primary);"></div>
                                                 </div>
                                                 <span>${percentage}%</span>
@@ -402,60 +661,87 @@ const ReportsView = {
                                         </td>
                                     </tr>
                                 `;
-                            }).join('')}
+        }).join('')}
                         </tbody>
                     </table>
                 </div>
             `}
         `;
     },
-    
+
     async renderProfitabilityReport() {
         const endDate = new Date();
         const startDate = new Date();
         startDate.setDate(startDate.getDate() - 30);
-        
+
         const report = await ReportController.getProfitability(startDate, endDate);
-        
+
         return `
-            <h3>Rentabilidad (Últimos 30 días)</h3>
-            
-            <div class="grid grid-4" style="margin: 1.5rem 0;">
-                <div class="stat-card">
-                    <h3>Ingresos</h3>
-                    <div class="value" style="color: var(--secondary);">${formatCLP(report.revenue)}</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h3>Rentabilidad Real (Últimos 30 días)</h3>
+            <div style="background: rgba(59, 130, 246, 0.1); padding: 0.5rem 1rem; border-radius: 0.5rem; border: 1px solid rgba(59, 130, 246, 0.2); font-size: 0.85rem; color: #60a5fa;">
+                ℹ️ Ventas Internas: <b>100% Ingreso</b> | Boletas: <b>Valor Neto (Sin IVA)</b>
+            </div>
+        </div>
+        
+        <div class="grid grid-5" style="margin: 1.5rem 0;">
+            <div class="stat-card">
+                <h3>Ingresos Reales</h3>
+                <div class="value" style="color: #60a5fa;">${formatCLP(report.revenue)}</div>
+                <small style="opacity: 0.7;">Venta Neta + Venta Interna</small>
+            </div>
+            <div class="stat-card">
+                <h3>Costo de Ventas</h3>
+                <div class="value" style="color: #94a3b8;">${formatCLP(report.costOfSales)}</div>
+                <small style="opacity: 0.7;">Inversión Neta (Sin IVA)</small>
+            </div>
+            <div class="stat-card">
+                <h3>Ganancia Bruta Real</h3>
+                <div class="value" style="color: #34d399; font-weight: 800;">${formatCLP(report.grossProfit)}</div>
+                <small style="opacity: 0.8; font-size: 0.75rem; display: block; margin-bottom: 0.2rem;">Utilidad neta sin IVA.</small>
+                <small style="opacity: 0.6;">${report.grossMargin.toFixed(1)}% margen real</small>
+            </div>
+            <div class="stat-card">
+                <h3>Gastos Operacionales</h3>
+                <div class="value" style="color: #f87171;">${formatCLP(report.operationalExpenses)}</div>
+                <small style="opacity: 0.7;">Gastos del período</small>
+            </div>
+            <div class="stat-card">
+                <h3>Utilidad Final</h3>
+                <div class="value" style="color: ${report.profit >= 0 ? '#34d399' : '#f87171'}; font-weight: 900;">
+                    ${formatCLP(report.profit)}
                 </div>
-                <div class="stat-card">
-                    <h3>Costos</h3>
-                    <div class="value" style="color: var(--danger);">${formatCLP(report.cost)}</div>
+                <small style="opacity: 0.7;">${report.margin.toFixed(1)}% de éxito</small>
+            </div>
+        </div>
+        
+        <div style="padding: 1.5rem; background: rgba(17, 24, 39, 0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 1rem; margin-bottom: 1.5rem;">
+            <h4 style="margin-bottom: 1rem; color: var(--secondary);">📊 Estado de Resultados Consolidado</h4>
+            <div style="display: flex; flex-direction: column; gap: 0.85rem;">
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="opacity: 0.8;">Ingresos Reales Acumulados:</span>
+                    <strong style="color: #60a5fa;">${formatCLP(report.revenue)}</strong>
                 </div>
-                <div class="stat-card">
-                    <h3>Ganancia</h3>
-                    <div class="value" style="color: var(--primary);">${formatCLP(report.profit)}</div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="opacity: 0.8;">Costo de Productos (Valor Neto):</span>
+                    <strong style="color: #f87171;">-${formatCLP(report.costOfSales)}</strong>
                 </div>
-                <div class="stat-card">
-                    <h3>Margen</h3>
-                    <div class="value" style="color: var(--primary);">${report.margin.toFixed(1)}%</div>
+                <div style="display: flex; justify-content: space-between; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <strong style="color: var(--secondary);">Ganancia Bruta Real:</strong>
+                    <strong style="color: #34d399; font-size: 1.1rem;">${formatCLP(report.grossProfit)}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span style="opacity: 0.8;">Descuento por Gastos Operacionales:</span>
+                    <strong style="color: #f87171;">-${formatCLP(report.operationalExpenses)}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding-top: 1rem; border-top: 2px solid rgba(255,255,255,0.1); font-size: 1.3rem;">
+                    <strong>Utilidad Final del Negocio:</strong>
+                    <strong style="color: ${report.profit >= 0 ? '#34d399' : '#f87171'};">
+                        ${formatCLP(report.profit)}
+                    </strong>
                 </div>
             </div>
-            
-            <div style="padding: 1.5rem; background: var(--light); border-radius: 0.5rem; margin-bottom: 1.5rem;">
-                <h4 style="margin-bottom: 1rem;">Resumen Financiero</h4>
-                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>Ingresos por Ventas:</span>
-                        <strong style="color: var(--secondary);">${formatCLP(report.revenue)}</strong>
-                    </div>
-                    <div style="display: flex; justify-content: space-between;">
-                        <span>Costo de Productos Vendidos:</span>
-                        <strong style="color: var(--danger);">-${formatCLP(report.cost)}</strong>
-                    </div>
-                    <div style="display: flex; justify-content: space-between; padding-top: 0.75rem; border-top: 2px solid var(--border); font-size: 1.25rem;">
-                        <strong>Ganancia Neta:</strong>
-                        <strong style="color: var(--primary);">${formatCLP(report.profit)}</strong>
-                    </div>
-                </div>
-            </div>
+        </div>
             
             ${report.byCategory && report.byCategory.length > 0 ? `
                 <div class="card" style="margin-bottom: 1.5rem;">
@@ -492,52 +778,12 @@ const ReportsView = {
                     </div>
                 </div>
             ` : ''}
-            
-            ${report.byProduct && report.byProduct.length > 0 ? `
-                <div class="card">
-                    <h4 style="margin-bottom: 1rem;">Top 20 Productos Más Rentables</h4>
-                    <div class="table-container" style="max-height: 500px; overflow-y: auto;">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Producto</th>
-                                    <th>Categoría</th>
-                                    <th>Cant. Vendida</th>
-                                    <th>Ingresos</th>
-                                    <th>Costos</th>
-                                    <th>Ganancia</th>
-                                    <th>Margen %</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${report.byProduct.slice(0, 20).map(p => `
-                                    <tr>
-                                        <td><strong>${p.name}</strong></td>
-                                        <td><small>${p.category}</small></td>
-                                        <td>${formatNumber(p.quantity)}</td>
-                                        <td>${formatCLP(p.revenue)}</td>
-                                        <td style="color: var(--danger);">${formatCLP(p.cost)}</td>
-                                        <td style="color: ${p.profit >= 0 ? 'var(--primary)' : 'var(--danger)'};">
-                                            <strong>${formatCLP(p.profit)}</strong>
-                                        </td>
-                                        <td>
-                                            <span style="color: ${p.margin >= 0 ? 'var(--primary)' : 'var(--danger)'};">
-                                                ${p.margin.toFixed(1)}%
-                                            </span>
-                                        </td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            ` : ''}
         `;
     },
-    
+
     async renderStockReport() {
         const report = await ReportController.getStockReport();
-        
+
         return `
             <h3>Reporte de Stock e Inventario</h3>
             
@@ -593,57 +839,549 @@ const ReportsView = {
             ` : '<div class="empty-state">✓ Todos los productos tienen stock adecuado</div>'}
         `;
     },
-    
-    renderSalesTable(sales) {
-        if (sales.length === 0) {
-            return '<div class="empty-state">No hay ventas en este período</div>';
-        }
-        
+
+    async renderStagnantReport(days = 14) {
+        const report = await ReportController.getStagnantProducts(days);
+        const topStagnant = report.slice(0, 100);
+
         return `
-            <div class="table-container" style="margin-top: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem;">
+                <div>
+                    <h3>Productos Estancados</h3>
+                    <p style="color: var(--secondary); margin: 0;">Productos con stock que hace tiempo no se venden. Última venta o fecha de creación > ${days} días.</p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <span>Umbral Inactividad:</span>
+                    <select class="form-control" style="width: auto;" onchange="ReportsView.showReport('stagnant', this.value)">
+                        <option value="7" ${days == 7 ? 'selected' : ''}>7 días</option>
+                        <option value="14" ${days == 14 ? 'selected' : ''}>14 días</option>
+                        <option value="30" ${days == 30 ? 'selected' : ''}>30 días</option>
+                        <option value="60" ${days == 60 ? 'selected' : ''}>60 días</option>
+                        <option value="90" ${days == 90 ? 'selected' : ''}>90 días</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="grid grid-3" style="margin-bottom: 1.5rem;">
+                <div class="stat-card">
+                    <h3>Crítico (>30d)</h3>
+                    <div class="value" style="color: var(--danger);">${report.filter(i => i.daysInactive > 30).length}</div>
+                    <small>Productos muy estancados</small>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Estancados</h3>
+                    <div class="value">${report.length}</div>
+                    <small>Bajo umbral de ${days} días</small>
+                </div>
+                <div class="stat-card">
+                    <h3>Valor Inmovilizado</h3>
+                    <div class="value" style="color: var(--warning);">${formatCLP(report.reduce((sum, item) => sum + item.costValue, 0))}</div>
+                    <small>Costo total aproximado</small>
+                </div>
+            </div>
+            
+            <div class="table-container">
                 <table>
                     <thead>
                         <tr>
-                            <th>#</th>
-                            <th>Fecha y Hora</th>
-                            <th>Items</th>
-                            <th>Método de Pago</th>
-                            <th>Total</th>
-                            <th>Acción</th>
+                            <th>Producto</th>
+                            <th>Última Venta</th>
+                            <th>Inactivo Hace</th>
+                            <th>Stock</th>
+                            <th>Valor Stock</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${sales.map(s => `
+                        ${topStagnant.map(item => `
                             <tr>
-                                <td>${s.saleNumber}</td>
-                                <td>${formatDateTime(s.date)}</td>
-                                <td>${s.items.length}</td>
+                                <td><strong>${item.name}</strong></td>
+                                <td>${item.lastSoldAt ? formatDateTime(item.lastSoldAt).slice(0, 10) : '<span style="opacity: 0.5;">Nunca vendido</span>'}</td>
                                 <td>
-                                    <span class="badge badge-info">
-                                        ${this.getPaymentMethodName(s.paymentMethod)}
+                                    <span class="badge ${item.daysInactive > 30 ? 'badge-danger' : (item.daysInactive > 14 ? 'badge-warning' : 'badge-info')}">
+                                        ${item.daysInactive} días
                                     </span>
                                 </td>
-                                <td><strong>${formatCLP(s.total)}</strong></td>
-                                <td>
-                                    <button class="btn btn-sm btn-secondary" onclick="ReportsView.updatePayment(${s.id})" title="Corregir método de pago">
-                                        ✏️
-                                    </button>
-                                </td>
+                                <td>${item.stock}</td>
+                                <td>${formatCLP(item.costValue)}</td>
                             </tr>
                         `).join('')}
+                        ${report.length === 0 ? '<tr><td colspan="5" style="text-align:center; padding: 2rem; opacity: 0.5;">No hay productos estancados en este umbral</td></tr>' : ''}
                     </tbody>
                 </table>
             </div>
         `;
     },
-    
+
+    async renderCostAlertsReport() {
+        const alerts = await ReportController.getCostAlerts();
+
+        const fieldMap = {
+            'cost': 'Costo',
+            'price': 'Precio Venta',
+            'name': 'Nombre',
+            'barcode': 'Código de Barras',
+            'category': 'Categoría',
+            'minStock': 'Stock Mínimo',
+            'maxStock': 'Stock Máximo',
+            'expiryDate': 'Vencimiento',
+            'image': 'Imagen',
+            'type': 'Tipo Unidad',
+            'description': 'Descripción',
+            'updatedBy': 'Modificado por'
+        };
+
+        return `
+            <div class="pos-section">
+                <div style="margin-bottom: 2rem; border-left: 4px solid #fbbf24; padding-left: 1rem;">
+                    <h3 style="margin: 0;">⚠️ Alertas de Auditoría: Cambios de Costo</h3>
+                    <p style="color: var(--secondary); margin: 0.5rem 0 0 0; font-size: 0.9rem;">
+                        Este listado detecta modificaciones manuales en el <strong>Costo</strong> del catálogo.
+                    </p>
+                </div>
+
+                <div class="table-container card glass-panel">
+                    <table style="width: 100%; border-collapse: separate; border-spacing: 0 0.5rem;">
+                        <thead>
+                            <tr style="background: rgba(255,255,255,0.05);">
+                                <th style="padding: 1rem; border-radius: 0.5rem 0 0 0.5rem;">Fecha</th>
+                                <th style="padding: 1rem;">Responsable</th>
+                                <th style="padding: 1rem;">Producto</th>
+                                <th style="padding: 1rem; border-radius: 0 0.5rem 0.5rem 0;">Cambio Realizado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${alerts.length === 0 ? `
+                                <tr><td colspan="4" style="text-align:center; padding: 4rem; opacity: 0.5;">
+                                    <div style="font-size: 3rem; margin-bottom: 1rem;">✅</div>
+                                    Sin cambios manuales sospechosos detectados.
+                                </td></tr>
+                            ` : alerts.map(a => {
+            const changes = a.metadata.changes || {};
+            const costChange = changes.cost || changes.costBruto || changes.costNeto;
+
+            // Fallback inteligente para el nombre del producto
+            let productName = a.metadata.productName;
+            if (!productName) {
+                if (a.summary && a.summary.includes('Producto #')) {
+                    const match = a.summary.match(/Producto #\d+/);
+                    productName = match ? match[0] : 'Producto #' + a.productId;
+                } else if (a.summary && a.summary.includes(':')) {
+                    productName = a.summary.split(':').pop().trim();
+                } else {
+                    productName = 'Producto #' + a.productId;
+                }
+            }
+
+            let detailHTML = '';
+            if (costChange) {
+                detailHTML = `
+                                    <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+                                        <div style="font-size: 0.95rem; color: #fbbf24; font-weight: bold;">
+                                            ${formatCLP(costChange.old)} ➔ ${formatCLP(costChange.new)}
+                                        </div>
+                                        ${Object.keys(changes).length > 1 ? `
+                                            <div style="font-size: 0.75rem; opacity: 0.6; font-style: italic;">
+                                                También se cambió: ${Object.keys(changes).filter(k => k !== 'cost' && k !== 'costBruto' && k !== 'costNeto').map(k => changes[k].label || k).join(', ')}
+                                            </div>
+                                        ` : ''}
+                                    </div>
+                                `;
+            } else {
+                // Fallback para logs antiguos (sin objeto de cambios old/new)
+                const fields = a.metadata.changedFields || ['cost'];
+                const isOnlyCost = fields.length === 1 && fields[0] === 'cost';
+
+                detailHTML = `
+                    <div style="font-size: 0.9rem; color: #fbbf24; font-weight: 600;">
+                        ${isOnlyCost ? 'Ajuste de Costo' : 'Ajuste de Costo y más'}
+                    </div>
+                `;
+            }
+
+            return `
+                                <tr style="background: rgba(255,255,255,0.02); transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='rgba(255,255,255,0.02)'">
+                                    <td style="padding: 1rem; border-radius: 0.5rem 0 0 0.5rem; font-size: 0.85rem; color: var(--secondary); white-space: nowrap;">
+                                        ${formatDateTime(a.date)}
+                                    </td>
+                                    <td style="padding: 1rem;">
+                                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                            <div style="width: 28px; height: 28px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 0.75rem;">
+                                                ${a.username.charAt(0).toUpperCase()}
+                                            </div>
+                                            <span style="font-size: 0.9rem;">${a.username}</span>
+                                        </div>
+                                    </td>
+                                    <td style="padding: 1rem; font-weight: 600; font-size: 0.95rem;">
+                                        ${productName}
+                                    </td>
+                                    <td style="padding: 1rem; border-radius: 0 0.5rem 0.5rem 0;">
+                                        ${detailHTML}
+                                    </td>
+                                </tr>
+                            `;
+        }).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+    },
+
+    async renderCategoryChartFromReport(type) {
+        const canvas = document.getElementById('categoryChart');
+        if (!canvas) return;
+
+        // Limpiar canvas anterior si existe
+        const existingChart = Chart.getChart(canvas);
+        if (existingChart) existingChart.destroy();
+
+        let report;
+        const now = new Date();
+        if (type === 'daily') {
+            report = await ReportController.getDailySales(now);
+        } else if (type === 'weekly') {
+            report = await ReportController.getWeeklySales(now);
+        } else if (type === 'monthly') {
+            const picker = document.getElementById('monthPicker');
+            const [y, m] = (picker?.value || `${now.getFullYear()}-${now.getMonth() + 1}`).split('-');
+            report = await ReportController.getMonthlySales(parseInt(y), parseInt(m) - 1);
+        }
+
+        if (!report || !report.sales || report.sales.length === 0) {
+            canvas.parentElement.innerHTML = '<div style="text-align:center; padding: 2.5rem; opacity: 0.6; color: #94a3b8; font-size: 0.9rem;">No hay ventas registradas en este periodo</div>';
+            return;
+        }
+
+        const categoryData = {};
+        // Cargar productos de forma segura
+        const allProducts = await Product.getAllIncludingDeleted().catch(() => []);
+        const productMap = new Map();
+        allProducts.forEach(p => {
+            if (p && p.id) productMap.set(String(p.id), p);
+        });
+
+        report.sales.forEach(sale => {
+            let items = sale.items;
+            // Robustez: por si acaso los items vienen como string JSON
+            if (typeof items === 'string') {
+                try { items = JSON.parse(items); } catch (e) { items = []; }
+            }
+
+            (items || []).forEach(item => {
+                if (!item) return;
+
+                const productId = String(item.productId || '');
+                const prod = productMap.get(productId);
+
+                let cat = 'General';
+                if (prod && prod.category && prod.category.trim()) {
+                    cat = prod.category.trim();
+                } else if (item.category && item.category.trim()) {
+                    cat = item.category.trim();
+                } else if (prod && prod.name) {
+                    // Si no tiene categoría pero sí producto, dejamos en General o la categoría del prod si existiera
+                    cat = prod.category || 'General';
+                }
+
+                const total = parseFloat(item.total) || 0;
+                categoryData[cat] = (categoryData[cat] || 0) + total;
+            });
+        });
+
+        // Ordenar categorías por monto
+        const sortedEntries = Object.entries(categoryData)
+            .sort((a, b) => b[1] - a[1]);
+
+        const labels = sortedEntries.map(e => e[0]);
+        const data = sortedEntries.map(e => e[1]);
+
+        if (labels.length === 0) {
+            canvas.parentElement.innerHTML = '<div style="text-align:center; padding: 2.5rem; opacity: 0.6; color: #94a3b8; font-size: 0.9rem;">Sin categorías detectadas en los productos vendidos</div>';
+            return;
+        }
+
+        const colors = ['#6366f1', '#10b981', '#f59e0b', '#3b82f6', '#ec4899', '#8b5cf6', '#ef4444', '#06b6d4'];
+
+        try {
+            if (typeof Chart === 'undefined') throw new Error('Chart.js no cargado');
+
+            new Chart(canvas, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Ventas ($)',
+                        data: data,
+                        backgroundColor: colors.map(c => c + 'BB'),
+                        borderColor: colors,
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        barThickness: 26
+                    }]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    layout: { padding: { right: 40 } },
+                    scales: {
+                        x: { display: false },
+                        y: {
+                            grid: { display: false },
+                            ticks: {
+                                color: '#e2e8f0',
+                                font: { size: 12, family: 'Outfit, sans-serif' }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: 'rgba(15, 23, 42, 0.9)',
+                            callbacks: {
+                                label: (ctx) => ` Subtotal: ${formatCLP(ctx.raw)}`
+                            }
+                        }
+                    }
+                },
+                plugins: [{
+                    id: 'valueLabels',
+                    afterDatasetsDraw(chart) {
+                        const { ctx } = chart;
+                        chart.data.datasets.forEach((dataset, i) => {
+                            const meta = chart.getDatasetMeta(i);
+                            meta.data.forEach((bar, index) => {
+                                const val = dataset.data[index];
+                                const text = formatCLP(val);
+                                ctx.fillStyle = '#f1f5f9';
+                                ctx.font = 'bold 10px Outfit, sans-serif';
+                                ctx.textAlign = 'left';
+                                ctx.textBaseline = 'middle';
+                                ctx.fillText(text, bar.x + 8, bar.y);
+                            });
+                        });
+                    }
+                }]
+            });
+        } catch (e) {
+            console.error('Error rendering chart:', e);
+            canvas.parentElement.innerHTML = `<div style="text-align:center; color: #ef4444; padding: 1rem;">Error visual: ${e.message}</div>`;
+        }
+    },
+
+    renderSalesTable(sales) {
+        if (sales.length === 0) return '<div class="empty-state">No hay ventas registradas hoy</div>';
+
+        return `
+        <div style="margin-top: 2rem;">
+            <h4 style="margin-bottom: 1rem; color: var(--secondary); display: flex; align-items: center; gap: 0.5rem;">
+                📒 Detalle de Transacciones del Día
+            </h4>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Fecha</th>
+                            <th>Items</th>
+                            <th>Pago</th>
+                            <th>Total</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${sales.map(s => {
+            const statusBadge = s.status === 'completed'
+                ? '<span class="badge badge-success">Completada</span>'
+                : s.status === 'partial'
+                    ? '<span class="badge badge-warning">Parcial</span>'
+                    : '<span class="badge badge-danger">Anotado</span>';
+
+            const methodLabel = (s.status === 'pending' || s.status === 'partial')
+                ? `${this.getPaymentMethodName(s.paymentMethod)} + Anotado`
+                : this.getPaymentMethodName(s.paymentMethod);
+
+            return `
+                            <tr>
+                                <td>${s.saleNumber}</td>
+                                <td>${formatDateTime(s.date)}</td>
+                                <td>${s.items.length}</td>
+                                <td>${statusBadge} <small style="display:block; opacity: 0.7;">${methodLabel}</small></td>
+                                <td><strong>${formatCLP(s.total)}</strong></td>
+                                <td>
+                                    <button class="btn btn-sm btn-secondary" onclick="ReportsView.updatePayment(${s.id})">✏️</button>
+                                </td>
+                            </tr>
+                        `;
+        }).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+    },
+
     getPaymentMethodName(method) {
         const names = {
             cash: 'Efectivo',
             card: 'Tarjeta',
             qr: 'QR',
-            other: 'Otro'
+            other: 'Otro',
+            pending: 'Anotado',
+            mixed: 'Pago Mixto'
         };
         return names[method] || method;
+    },
+
+    async updatePayment(saleId) {
+        const sale = await Sale.getById(saleId);
+        const content = `
+    < div style = "margin-bottom: 1rem;" >
+        <p>Venta #${sale.saleNumber} - Total: ${formatCLP(sale.total)}</p>
+            </div >
+    <div class="form-group">
+        <label>Nuevo Método de Pago</label>
+        <select id="newPaymentMethod" class="form-control">
+            <option value="cash" ${sale.paymentMethod === 'cash' ? 'selected' : ''}>Efectivo</option>
+            <option value="card" ${sale.paymentMethod === 'card' ? 'selected' : ''}>Tarjeta</option>
+            <option value="qr" ${sale.paymentMethod === 'qr' ? 'selected' : ''}>QR</option>
+            <option value="other" ${sale.paymentMethod === 'other' ? 'selected' : ''}>Otro</option>
+        </select>
+    </div>
+`;
+        const footer = `
+    < button class="btn btn-secondary" onclick = "closeModal()" > Cancelar</button >
+        <button class="btn btn-primary" onclick="ReportsView.savePaymentUpdate(${saleId})">Guardar</button>
+`;
+        showModal(content, { title: 'Corregir Pago', footer, width: '400px' });
+    },
+
+    async savePaymentUpdate(saleId) {
+        const newMethod = document.getElementById('newPaymentMethod').value;
+        try {
+            await ReportController.updateSalePayment(saleId, newMethod);
+            closeModal();
+            showNotification('Pago actualizado', 'success');
+            await this.showReport(this.currentReport);
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    },
+
+    async handleMonthChange(value) {
+        if (!value) return;
+        const [year, month] = value.split('-').map(Number);
+        this.showReport('monthly', year, month - 1);
+    },
+
+    exportToPDF(type, reportData) {
+        try {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFontSize(18);
+            doc.text(`Reporte de Ventas - ${type.toUpperCase()}`, 14, 20);
+            doc.setFontSize(12);
+            doc.text(`Total: ${formatCLP(reportData.totalAmount)}`, 14, 30);
+            doc.text(`Ventas: ${reportData.totalSales}`, 14, 38);
+
+            if (reportData.sales && reportData.sales.length > 0) {
+                const cols = ["N°", "Fecha", "Método", "Total"];
+                const rows = reportData.sales.map(s => [
+                    s.saleNumber,
+                    formatDateTime(s.date),
+                    this.getPaymentMethodName(s.paymentMethod),
+                    formatCLP(s.total)
+                ]);
+                doc.autoTable({ head: [cols], body: rows, startY: 50 });
+            }
+            doc.save(`reporte-${type}-${Date.now()}.pdf`);
+        } catch (e) {
+            console.error(e);
+            showNotification('Error al generar PDF', 'error');
+        }
+    },
+
+    async showIVADetailModal(type, year, month) {
+        const report = await ReportController.getMonthlySales(year, month);
+        let title = '';
+        let content = '';
+
+        if (type === 'debito') {
+            title = `Detalle IVA Débito (Ventas) - ${month + 1}/${year}`;
+            content = `
+                <div class="table-container">
+                    <table style="width: 100%;">
+                        <thead>
+                            <tr style="background: rgba(var(--primary-rgb), 0.1);">
+                                <th>N° Venta</th>
+                                <th>Fecha</th>
+                                <th>Total</th>
+                                <th>IVA (19%)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${report.sales.map(s => `
+                                <tr>
+                                    <td>${s.saleNumber || '#' + (s.id || '').toString().slice(-4)}</td>
+                                    <td>${formatDateTime(s.date)}</td>
+                                    <td>${formatCLP(s.total)}</td>
+                                    <td style="color: #f87171; font-weight: bold;">${formatCLP(s.taxAmount || 0)}</td>
+                                </tr>
+                            `).join('')}
+                            ${report.sales.length === 0 ? '<tr><td colspan="4" style="text-align:center; padding: 2rem; opacity: 0.5;">No hay ventas registradas</td></tr>' : ''}
+                        </tbody>
+                        <tfoot style="background: rgba(0,0,0,0.05); font-weight: bold;">
+                            <tr>
+                                <td colspan="2" style="text-align: right;">TOTAL:</td>
+                                <td>${formatCLP(report.totalAmount)}</td>
+                                <td style="color: #f87171;">${formatCLP(report.ivaDebito)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            `;
+        } else {
+            title = `Detalle de Compras y Crédito IVA - ${month + 1}/${year}`;
+            content = `
+                <div class="table-container">
+                    <table style="width: 100%;">
+                        <thead>
+                            <tr style="background: rgba(52, 211, 153, 0.1);">
+                                <th>Fecha</th>
+                                <th>Proveedor</th>
+                                <th>Tipo Doc.</th>
+                                <th>Total Bruto</th>
+                                <th>IVA Crédito</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${report.purchases.map(p => {
+                const isInvoice = p.documentType === 'factura';
+                return `
+                                <tr style="${!isInvoice ? 'opacity: 0.7;' : ''}">
+                                    <td>${formatDate(p.date)}</td>
+                                    <td>${p.supplierName || 'S/N'}</td>
+                                    <td><span class="badge ${isInvoice ? 'badge-success' : 'badge-secondary'}">${(p.documentType || 'S/D').toUpperCase()}</span></td>
+                                    <td>${formatCLP(p.total)}</td>
+                                    <td style="color: ${isInvoice ? '#34d399' : 'var(--secondary)'}; font-weight: ${isInvoice ? 'bold' : 'normal'};">
+                                        ${formatCLP(p.ivaAmount || 0)}
+                                    </td>
+                                </tr>
+                            `;
+            }).join('')}
+                            ${report.purchases.length === 0 ? '<tr><td colspan="5" style="text-align:center; padding: 2rem; opacity: 0.5;">No se registraron compras este mes</td></tr>' : ''}
+                        </tbody>
+                        <tfoot style="background: rgba(0,0,0,0.05); font-weight: bold;">
+                            <tr>
+                                <td colspan="3" style="text-align: right;">TOTAL CRÉDITO FACTURAS:</td>
+                                <td colspan="2" style="color: #34d399; text-align: right; padding-right: 1.5rem;">${formatCLP(report.ivaCredito)}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            `;
+        }
+
+        showModal(content, { title, width: '700px' });
     }
 };

@@ -4,22 +4,35 @@ class ProductController {
     }
 
     static async saveProduct(data) {
-        if (!data.name || !data.price) {
-            throw new Error('Nombre y precio son requeridos');
-        }
-        
         if (data.id) {
-            await Product.update(data.id, data);
+            // C8: Permiso para editar producto
+            PermissionService.require('products.edit', 'editar productos');
+            await ProductService.updateProduct(data.id, data);
             showNotification('Producto actualizado exitosamente', 'success');
         } else {
-            await Product.create(data);
+            // C8: Permiso para crear producto
+            PermissionService.require('products.create', 'crear productos');
+            await ProductService.createProduct(data);
             showNotification('Producto creado exitosamente', 'success');
         }
     }
 
     static async deleteProduct(id) {
+        // C8: Permiso para desactivar producto
+        PermissionService.require('products.delete', 'desactivar productos');
         await Product.delete(id);
-        showNotification('Producto eliminado', 'success');
+        showNotification('Producto desactivado. Ya no aparecerá en listados ni ventas.', 'success');
+    }
+
+    /**
+     * C1: Restaurar un producto desactivado
+     * @param {number} id - Product ID
+     */
+    static async restoreProduct(id) {
+        // C8: Permiso para restaurar producto (mismo que delete)
+        PermissionService.require('products.delete', 'restaurar productos');
+        await Product.restore(id);
+        showNotification('Producto restaurado y activo nuevamente.', 'success');
     }
 
     static async searchProducts(term) {

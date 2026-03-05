@@ -1,246 +1,86 @@
-# 🛒 POS MINIMARKET - Sistema de Punto de Venta
+# Sistema de Ventas La Kurva
 
-Sistema completo de Punto de Venta diseñado para minimarkets en Chile. **100% offline**, con soporte para Android.
+Sistema de gestión para minimarkets: punto de venta, inventario, clientes, proveedores, caja y reportes. Funciona **100% offline** con datos locales (IndexedDB).
 
-## ✨ Características Principales
-
-- 🏪 **Punto de Venta rápido** - Búsqueda por código de barras o nombre
-- 💰 **Control de Caja** - Apertura, cierre y alertas de diferencias
-- 📦 **Gestión de Productos** - Catálogo completo con stock automático
-- 👥 **Clientes y Proveedores** - Registro y seguimiento
-- 🚚 **Control de Compras** - Cuentas por pagar y stock
-- 📊 **Inventario** - Alertas de stock bajo y movimientos
-- 📈 **Reportes** - Ventas, rentabilidad y análisis
-- 📱 **PWA** - Instala como app en Android
-- 💵 **Moneda: CLP** - Pesos Chilenos
-
-## 🚀 Inicio Rápido
-
-### 1. Abrir la Aplicación
-- Abre el archivo `index.html` en tu navegador (Chrome recomendado)
-- O usa un servidor local:
-  ```bash
-  python -m http.server 8000
-  # Luego abre: http://localhost:8000
-  ```
-
-### 2. 🔐 Crear tu Usuario (Primera Vez)
-**IMPORTANTE**: Si es la primera vez que usas el sistema:
-
-1. En la pantalla de login, ingresa:
-   - **Usuario**: el nombre que quieras (ej: admin, tu_nombre, etc.)
-   - **Contraseña**: la contraseña que desees
-2. Click en "Iniciar Sesión"
-3. **El sistema creará automáticamente tu usuario**
-
-**¡El primer usuario que crees será el administrador!**
-
-### 3. Configuración Inicial
-
-1. **Importar Productos** (recomendado)
-   - Ir a Productos → 📤 Importar Excel
-   - Seleccionar archivo CSV con tus productos
-   - Ver formato en [SOLUCION-PROBLEMAS.md](SOLUCION-PROBLEMAS.md)
-   
-2. **Abrir Caja**
-   - Ir a Caja → Abrir Caja
-   - Ingresar monto inicial
-   - Click en "Abrir Caja"
-
-3. **¡Listo para vender!**
-   - Ve al Punto de Venta
-   - Busca o escanea productos
-   - ¡Empieza a vender!
+**Versión:** 1.2.0
 
 ---
 
-## 📚 Documentación Importante
+## Documentación
 
-- **[SOLUCION-PROBLEMAS.md](SOLUCION-PROBLEMAS.md)** - ⚠️ LEE ESTO SI TIENES PROBLEMAS
-- **[MEJORAS-IMPLEMENTADAS.md](MEJORAS-IMPLEMENTADAS.md)** - Funcionalidades del sistema
-- **[FUNCIONALIDADES-PENDIENTES.md](FUNCIONALIDADES-PENDIENTES.md)** - Próximas mejoras
-
----
-
-## 📋 Formato de Importación de Productos
-
-```json
-[
-  {
-    "name": "Coca Cola 1.5L",
-    "barcode": "7790001234567",
-    "category": "Bebidas",
-    "type": "unit",
-    "price": 1500,
-    "cost": 1000,
-    "stock": 50,
-    "minStock": 10
-  }
-]
-```
-
-**Campos:**
-- `name` (obligatorio) - Nombre del producto
-- `price` (obligatorio) - Precio de venta
-- `barcode` (opcional) - Código de barras
-- `category` (opcional) - Categoría
-- `type` (opcional) - `"unit"` o `"weight"` (por kg)
-- `cost` (opcional) - Costo del producto
-- `stock` (opcional) - Stock inicial
-- `minStock` (opcional) - Stock mínimo para alertas
-
-## 📱 Instalación en Android
-
-1. Abre la app en Chrome/Firefox móvil
-2. Menú → "Agregar a pantalla de inicio"
-3. ¡Listo! Funciona como app nativa
-
-## 🏗️ Arquitectura
-
-```
-├── index.html          # Aplicación principal
-├── manifest.json       # Configuración PWA
-├── service-worker.js   # Cache offline
-├── css/
-│   └── styles.css     # Estilos
-└── js/
-    ├── app.js         # Inicialización
-    ├── db.js          # IndexedDB manager
-    ├── models/        # Modelos de datos
-    ├── controllers/   # Lógica de negocio
-    ├── views/         # Vistas del sistema
-    └── utils/         # Utilidades
-```
-
-## 📖 Módulos del Sistema
-
-### 1️⃣ Punto de Venta (POS)
-- Búsqueda rápida de productos
-- Carrito de compras
-- Productos por unidad y peso
-- Métodos de pago: Efectivo, Tarjeta, QR, Otro
-
-### 2️⃣ Productos
-- CRUD completo
-- Importación masiva JSON
-- Categorización
-- Control de stock
-
-### 3️⃣ Clientes
-- Registro básico
-- Historial de compras
-
-### 4️⃣ Proveedores y Compras
-- Gestión de proveedores
-- Registro de compras
-- Cuentas por pagar
-- Incremento automático de stock
-
-### 5️⃣ Control de Caja
-- Apertura con monto inicial
-- Seguimiento en tiempo real
-- Cierre con resumen
-- Alertas de diferencias
-
-### 6️⃣ Inventario
-- Stock automático
-- Alertas de stock bajo
-- Ajustes manuales
-- Historial de movimientos
-
-### 7️⃣ Reportes
-- Ventas diarias/semanales/mensuales
-- Ventas por producto
-- Análisis de rentabilidad
-- Reporte de stock
-
-## 🔧 Tecnologías
-
-- **Frontend:** HTML5, CSS3, JavaScript Vanilla
-- **Base de Datos:** IndexedDB (100% offline)
-- **PWA:** Service Worker
-- **Sin dependencias externas**
-
-## 📚 Documentación Completa
-
-Ver [DOCUMENTACION.md](./DOCUMENTACION.md) para:
-- Guía detallada de uso
-- Ejemplos de extensión
-- Solución de problemas
-- Mejores prácticas
-
-## 🎯 Casos de Uso
-
-### Flujo Típico Diario
-
-1. **9:00 AM** - Abrir caja con monto inicial
-2. **9:00 AM - 8:00 PM** - Realizar ventas
-3. **Durante el día** - Recibir compras de proveedores
-4. **8:00 PM** - Cerrar caja y ver reportes
-
-### Venta Simple
-
-```
-1. Escanear código de barras (o buscar)
-2. Presionar Enter
-3. Seleccionar método de pago
-4. ¡Listo!
-```
-
-### Venta con Peso
-
-```
-1. Buscar producto (ej: "manzana")
-2. Ingresar peso en kg (ej: 0.5)
-3. Agregar al carrito
-4. Completar venta
-```
-
-## 🚧 Extensiones Futuras (Sugeridas)
-
-- [ ] Impresión de tickets
-- [ ] Integración con balanza digital
-- [ ] Sincronización con servidor en la nube
-- [ ] Gestión de múltiples usuarios/cajeros
-- [ ] Descuentos y promociones
-- [ ] Facturación electrónica SII Chile
-- [ ] Integración con pasarelas de pago
-- [ ] App móvil nativa
-
-## ⚠️ Notas Importantes
-
-- **Backup:** Los datos se almacenan localmente. Realiza backups periódicos.
-- **Compatibilidad:** Funciona en Chrome, Firefox, Edge, Safari (moderno).
-- **Modo Incógnito:** IndexedDB puede estar deshabilitado.
-- **Internet:** No requiere conexión. Todo funciona offline.
-
-## 🐛 Solución Rápida de Problemas
-
-**App no carga:**
-- Presiona Ctrl+F5 para refrescar
-- Verifica consola del navegador (F12)
-
-**No puedo vender:**
-- Verifica que la caja esté abierta
-- Ve a Caja → Abrir Caja
-
-**Stock negativo:**
-- Es normal si vendes sin stock
-- Ajusta en Inventario → Ajuste de Stock
-
-## 📄 Licencia
-
-Desarrollado para uso comercial en minimarkets.
+| Documento | Para quién | Contenido |
+|-----------|------------|-----------|
+| [README-CLIENTE.md](README-CLIENTE.md) | Usuario final | Manual de usuario, guías por módulo, solución de problemas |
+| [README-DESARROLLADOR.md](README-DESARROLLADOR.md) | Vendedor/desarrollador | Estrategia de venta, precios sugeridos, explicación básica del código |
+| [README-TECNICO.md](README-TECNICO.md) | Desarrollador técnico | Arquitectura, módulos, APIs, mejoras implementadas |
+| [CHANGELOG.md](CHANGELOG.md) | Todos | Historial de versiones y cambios |
 
 ---
 
-## 🎉 ¡El sistema está listo!
+## Resumen del sistema
 
-Completamente funcional y preparado para:
-- ✅ Ventas offline
-- ✅ Control total de inventario
-- ✅ Gestión de caja
-- ✅ Reportes de negocio
-- ✅ Instalación en Android
+- **POS** – Ventas por código de barras o nombre, efectivo/tarjeta/QR, fiados
+- **Productos** – Catálogo, códigos de barras, precios, stock, categorías
+- **Clientes** – Cuenta corriente, pagos de deuda, historial
+- **Proveedores y Compras** – Compras a proveedores, actualización de stock y costo
+- **Caja** – Apertura/cierre, movimientos, cuadratura por efectivo
+- **Gastos** – Registro por categoría y método de pago
+- **Inventario** – Stock, ajustes, valor inventario (costo y venta)
+- **Reportes** – Ventas, rentabilidad, productos más vendidos, stock
+- **Configuración** – Backup/restauración, usuarios, seguridad
 
-**¿Necesitas ayuda?** Revisa la [documentación completa](./DOCUMENTACION.md).
+---
+
+## Mejoras de auditoría (v1.2.0 - Feb 2026)
+
+Implementadas 8 mejoras derivadas de la auditoría del sistema:
+
+1. **Validación de datos**: ProductValidator en productos e importación; SaleValidator rechaza ventas con total distinto a la suma de ítems; unicidad de código de barras.
+2. **Seguridad preload (Electron)**: Whitelist en getPath; validación de tipo, tamaño y JSON en backup a disco.
+3. **Vencimientos**: Campo opcional fecha de vencimiento en producto; columna y filtro "Próximo a vencer" en Productos e Inventario.
+4. **Límite de crédito**: Campo opcional en cliente; no se permite fiar por encima del límite (deuda actual + nueva venta).
+5. **Transacción atómica**: Creación de venta y descuento de stock en una sola transacción IndexedDB (rollback automático si falla algo).
+6. **Backup**: Rotación (últimos 30 archivos) y verificación post-escritura del archivo de backup.
+7. **ProductService**: Capa de servicio para productos con validación centralizada; controller e importación lo usan.
+8. **Confirmaciones**: Utilidades de caja y generación de código de recuperación usan el modal de confirmación de la app.
+
+Detalle en [CHANGELOG.md](CHANGELOG.md).
+
+---
+
+## Actualizaciones recientes (v1.1.0)
+
+### Caja
+- Cuadratura corregida: al cerrar caja se compara solo el **efectivo contado** con el efectivo esperado (no la suma de todos los medios).
+- Los pagos de deuda de clientes se cuentan una sola vez en el resumen de caja.
+- Botón **«Historial de esta caja»** corregido; modal con mejor contraste (fondo oscuro, texto claro).
+
+### Stock e inventario
+- Validación de stock también para productos por **peso (kg)**; no se permite vender sin stock suficiente.
+- El stock **nunca queda negativo**: se valida antes de vender, ajustar o registrar pérdidas/consumo.
+- Al **editar una venta** (cambiar cantidades o quitar ítems), el inventario se reconcilia automáticamente.
+- Al **eliminar una venta**, se restaura el stock; al **eliminar una compra**, se revierte el stock que esa compra había sumado.
+- Si falla el descuento de stock al crear una venta, la venta se elimina (rollback).
+- En **Inventario** hay dos tarjetas: **Valor inventario precio costo** y **Valor inventario precio venta**; ambos se recalculan con los movimientos de stock.
+
+### Otros
+- Reportes de rentabilidad usan costo histórico (costo al momento de la venta).
+- Validaciones mejoradas: sin sobrepagos, stock validado antes de vender, ajustes que evitan stock negativo.
+
+---
+
+## Requisitos e instalación
+
+- **Requisitos:** Windows 10 o superior, 500 MB de disco. No requiere internet.
+- **Ejecutable:** Ejecutar el instalador (por ejemplo `Sistema de Ventas Setup 1.0.0.exe`) y seguir los pasos.
+- **Desarrollo:** `npm install` y luego `npm start` (o el script definido en `package.json`).
+
+Credenciales por defecto: usuario `admin`, contraseña `admin123`. **Cambiar en producción.**
+
+---
+
+## Licencia y soporte
+
+Consultar documentación específica del proyecto. Para uso diario y dudas del usuario, ver [README-CLIENTE.md](README-CLIENTE.md).
+
+**Última actualización:** Febrero 2026

@@ -4,6 +4,50 @@ Todas las mejoras y cambios notables del sistema se documentan aquí.
 
 ---
 
+## [1.2.0] - 2026-02-02 - Mejoras de auditoría
+
+Implementación de las 8 correcciones derivadas de la auditoría del sistema para minimarket.
+
+### 1) Validación de datos (ventas, productos, stock)
+- **ProductController** y formulario de productos usan **ProductValidator** en alta, edición e importación.
+- **SaleValidator** rechaza la venta si el total no coincide con la suma de ítems (tolerancia 0.01).
+- Validación de **unicidad de código de barras** al crear producto.
+- Importación Excel/CSV valida cada fila con ProductValidator antes de crear/actualizar.
+
+### 2) Seguridad en preload (Electron)
+- **getPath**: solo se aceptan nombres en whitelist (`userData`, `temp`, `appData`, `home`, `documents`, `desktop`, `logs`).
+- **backupSaveToDisk**: se valida que el payload sea string, tamaño máximo 100 MB y JSON válido.
+- Misma validación aplicada al backup enviado en el cierre de la aplicación.
+
+### 3) Vencimientos en producto
+- Campo opcional **Fecha de vencimiento** (`expiryDate`) en producto (modelo, DB índice, formulario).
+- **ProductValidator** valida formato AAAA-MM-DD si se informa.
+- En **Productos**: columna "Venc." con badge "Vencido" / "Próximo a vencer" (7 días).
+- En **Inventario**: tarjeta "Próx. a vencer" y tabla con productos que vencen en 7 días.
+
+### 4) Límite de crédito en cliente
+- Campo opcional **Límite de crédito** en cliente (modelo, formulario, detalle de cuenta).
+- **SaleService.createSale**: antes de crear venta fiada se comprueba que deuda actual + total de la venta no supere el límite; si se supera, se rechaza con mensaje claro.
+
+### 5) Transacción atómica venta + stock
+- **SaleService.createSale** usa una sola **transacción IndexedDB** sobre `sales`, `products` y `stockMovements`.
+- Si falla cualquier paso (crear venta, actualizar stock, crear movimientos), se hace rollback completo.
+- Eliminado el rollback manual de venta huérfana; la atomicidad evita estados inconsistentes.
+
+### 6) Backup automático: rotación y verificación
+- **Rotación**: se mantienen solo los últimos 30 archivos de backup (`BACKUP_MAX_FILES`); se borran los más antiguos al guardar uno nuevo.
+- **Verificación post-escritura**: tras escribir el archivo se lee y se comprueba tamaño y que el contenido empiece por `{` (JSON de objeto).
+
+### 7) ProductService y separación frontend/backend
+- Nuevo **ProductService** con `createProduct(data)` y `updateProduct(id, data)` que centralizan validación (ProductValidator), barcode único y normalización de `expiryDate`.
+- **ProductController.saveProduct** e **importación de productos** usan ProductService; las mutaciones de producto pasan por la misma capa de negocio.
+
+### 8) Confirmaciones UX unificadas (modal)
+- **updateCashRegister6** y **deleteCashRegister** usan el modal de confirmación de la app (`confirm(message, callback)`) en lugar de `window.confirm`.
+- **Configuración > Generar código de recuperación** usa el mismo modal con callback para ejecutar la generación tras confirmar.
+
+---
+
 ## [1.0.0] - 2025-12-26
 
 ### 🎉 Versión Inicial - Sistema Completo
@@ -145,6 +189,32 @@ Todas las mejoras y cambios notables del sistema se documentan aquí.
 
 ---
 
+## [1.1.0] - 2026-02-02
+
+### Fixed – Caja (cuadratura y UX)
+
+- **Cuadratura al cerrar caja:** Se eliminó la duplicación de pagos de deuda en el resumen; el efectivo esperado usa solo el resumen por método de pago de ventas. La diferencia (sobrante/faltante) se calcula comparando **solo el efectivo contado** con el efectivo esperado (la vista envía solo efectivo, no la suma de todos los medios).
+- **SaleRepository.getTotalByPaymentMethod:** Ajuste para ventas `pending`/`partial` sin `paymentDetails`: se evita doble conteo con registros de `Payment`; si no hay Payment y hay `paidAmount`, se atribuye al método de la venta o efectivo.
+- **Vista Caja:** Botón «Historial de esta caja» corregido (variable en scope). Modal del historial con fondo oscuro y texto claro para mejor contraste.
+
+### Fixed – Stock e inventario
+
+- **ProductValidator:** Validación de stock para productos tipo `weight`; uso de `parseFloat` y validación de cantidad.
+- **Product.updateStock:** Uso de `parseFloat`; se lanza error si una resta dejaría stock negativo.
+- **Sale.updateSale:** Reconciliación de stock al editar ítems (cantidades o ítems eliminados): se restaura o descuenta stock según diferencias por `productId`.
+- **Purchase.delete:** Antes de eliminar la compra se llama a `StockService.revertPurchaseStock()`.
+- **SaleService.createSale:** Si `StockService.processSaleStock()` falla después de crear la venta, se elimina la venta (rollback).
+- **StockService.processSaleStock:** Validación de stock con `ProductValidator.validateStock()` antes de restar.
+- **StockService.createAdjustment:** Si la cantidad es negativa se valida stock suficiente; si es 0 no se realiza operación.
+- **ProductRepository.findLowStock:** Uso de `parseFloat` y manejo de `minStock` indefinido (tratado como 0).
+
+### Changed – Inventario (vista)
+
+- Tarjeta «Valor Inventario» renombrada a **«Valor Inventario Precio Costo»**.
+- Nueva tarjeta **«Valor Inventario Precio Venta»** (stock × precio de venta). Ambos valores se recalculan con los movimientos de stock.
+
+---
+
 ## Roadmap - Futuras Mejoras
 
 ### [1.1.0] - Planificado
@@ -190,4 +260,4 @@ y el proyecto adhiere a [Versionado Semántico](https://semver.org/lang/es/).
 
 ---
 
-**Última actualización:** 26 de Diciembre, 2025
+**Última actualización:** 2 de Febrero, 2026

@@ -1,27 +1,32 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#2563eb">
     <meta name="description" content="Sistema POS para Minimarket - Chile - 100% Offline">
-    <meta name="author" content="POS Minimarket">
+    <meta name="author" content="Minimarket La Kurva">
     <meta name="keywords" content="pos, punto de venta, minimarket, chile, offline, inventario">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="POS Mini">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' https://cdn.sheetjs.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:3000 http://127.0.0.1:3000 http://*:3000 https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' data:; font-src 'self'">
     <link rel="apple-touch-icon" href="icons/icon.svg">
     <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
     <title>POS Minimarket - Sistema de Punto de Venta</title>
-    <link rel="manifest" href="manifest.json">
+    <!-- Manifest se carga dinámicamente para evitar errores de CORS en Electron -->
     <link rel="stylesheet" href="css/styles.css">
 </head>
+
 <body>
     <!-- Splash screen para carga -->
-    <div id="splash-screen" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #2563eb; display: flex; align-items: center; justify-content: center; z-index: 9999;">
+    <div id="splash-screen"
+        style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #2563eb; display: flex; align-items: center; justify-content: center; z-index: 9999;">
         <div style="text-align: center; color: white;">
             <div style="font-size: 4rem; margin-bottom: 1rem;">🛒</div>
-            <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">POS Minimarket</h1>
+            <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Minimarket La Kurva</h1>
             <div class="loading"></div>
             <p style="margin-top: 1rem; opacity: 0.8;">Cargando sistema...</p>
         </div>
@@ -29,34 +34,46 @@
 
     <div id="app" style="display: none;">
         <button id="mobile-menu-btn" class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
-        <div id="mobile-overlay" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:99;" onclick="toggleSidebar()"></div>
-        
+        <div id="mobile-overlay"
+            style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:99;"
+            onclick="toggleSidebar()"></div>
+
         <nav id="sidebar">
-            <div class="logo">
-                <h2>🛒 POS Minimarket</h2>
-                <small style="opacity: 0.7; font-size: 0.75rem;">v1.0.0</small>
-            </div>
-            <ul class="nav-menu">
-                <li><a href="#" data-view="pos" class="active"><span class="icon">🛒</span> Punto de Venta</a></li>
-                <li><a href="#" data-view="products"><span class="icon">📦</span> Productos</a></li>
-                <li><a href="#" data-view="customers"><span class="icon">👥</span> Clientes</a></li>
-                <li><a href="#" data-view="suppliers"><span class="icon">🚚</span> Proveedores</a></li>
-                <li><a href="#" data-view="purchases"><span class="icon">📋</span> Compras</a></li>
-                <li><a href="#" data-view="cash"><span class="icon">💰</span> Caja</a></li>
-                <li><a href="#" data-view="inventory"><span class="icon">📊</span> Inventario</a></li>
-                <li><a href="#" data-view="reports"><span class="icon">📈</span> Reportes</a></li>
-                <li><a href="#" data-view="settings"><span class="icon">⚙️</span> Configuración</a></li>
-            </ul>
-            <div class="cash-status" id="cashStatus">
-                <div class="cash-closed">Caja Cerrada</div>
-            </div>
-            <div style="padding: 1rem; border-top: 1px solid rgba(255,255,255,0.1);">
-                <button class="btn btn-secondary btn-sm" style="width: 100%; margin-bottom: 0.5rem;" onclick="ShortcutHelper.show()">
-                    ⌨️ Atajos de Teclado
-                </button>
-                <div id="network-status" style="text-align: center; font-size: 0.75rem; opacity: 0.7; margin-top: 0.5rem;">
-                    <span id="online-indicator">🟢 Sistema Listo</span>
+            <div class="sidebar-content">
+                <div class="logo">
+                    <h2>🛒 Minimarket La Kurva</h2>
+                    <small style="opacity: 0.7; font-size: 0.75rem;">v1.0.0</small>
                 </div>
+                <div class="sidebar-top-row">
+                    <div class="sidebar-status-group">
+                        <span class="sidebar-label">Caja abierta:</span>
+                        <span class="sidebar-value" id="currentCashStatus">No</span>
+                    </div>
+                    <div class="sidebar-status-group">
+                        <span class="sidebar-label">Usuario:</span>
+                        <strong class="sidebar-value" id="currentUserName">Administrador</strong>
+                        <span class="sidebar-role-badge" id="currentUserRole"
+                            style="font-size: 0.65rem; padding: 0.1rem 0.4rem; border-radius: 0.25rem; background: rgba(99,102,241,0.3); color: #a5b4fc; margin-left: 0.3rem;"></span>
+                    </div>
+                    <div class="sidebar-top-actions">
+                        <button class="btn btn-secondary btn-sm" onclick="AuthManager.logout()">Cerrar sesión</button>
+                        <button class="btn btn-secondary btn-sm" onclick="ShortcutHelper.show()">⌨️ Atajos</button>
+                    </div>
+                </div>
+                <ul class="nav-menu">
+                    <li><a href="#" data-view="pos" class="active"><span class="icon">🛒</span> Punto de Venta</a></li>
+                    <li><a href="#" data-view="products"><span class="icon">📦</span> Productos</a></li>
+                    <li><a href="#" data-view="customers"><span class="icon">👥</span> Clientes</a></li>
+                    <li><a href="#" data-view="suppliers"><span class="icon">🚚</span> Provedores</a></li>
+                    <li><a href="#" data-view="purchases"><span class="icon">📋</span> Compras</a></li>
+                    <li><a href="#" data-view="expenses"><span class="icon">💸</span> Gastos</a></li>
+                    <li><a href="#" data-view="cash"><span class="icon">💰</span> Caja</a></li>
+                    <li><a href="#" data-view="inventory"><span class="icon">📊</span> Inventario</a></li>
+                    <li><a href="#" data-view="reports"><span class="icon">📈</span> Reportes</a></li>
+                    <li><a href="#" data-view="sales"><span class="icon">📋</span> Historial Ventas</a></li>
+                    <li><a href="#" data-view="settings"><span class="icon">⚙️</span> Configuración</a></li>
+                    <li><a href="#" data-view="auditLogs"><span class="icon">🕵️</span> Auditoría</a></li>
+                </ul>
             </div>
         </nav>
 
@@ -69,42 +86,136 @@
     <div id="notification-container"></div>
 
     <!-- Scripts en orden de dependencia -->
+    <!-- v2.1 - Fixed payment duplication and payment method selector -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-    <script src="js/utils/formatter.js"></script>
-    <script src="js/utils/alerts.js"></script>
-    <script src="js/utils/backup.js"></script>
-    <script src="js/utils/keyboard.js"></script>
-    <script src="js/utils/validator.js"></script>
-    <script src="js/db.js"></script>
-    <script src="js/models/User.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/utils/db-utilities.js"></script>
-    <script src="js/models/Product.js"></script>
-    <script src="js/models/Sale.js"></script>
-    <script src="js/models/Customer.js"></script>
-    <script src="js/models/Supplier.js"></script>
-    <script src="js/models/Purchase.js"></script>
-    <script src="js/models/CashRegister.js"></script>
-    <script src="js/models/StockMovement.js"></script>
-    <script src="js/models/Payment.js"></script>
-    <script src="js/controllers/ProductController.js"></script>
-    <script src="js/controllers/POSController.js"></script>
-    <script src="js/controllers/CustomerController.js"></script>
-    <script src="js/controllers/SupplierController.js"></script>
-    <script src="js/controllers/CashController.js"></script>
-    <script src="js/controllers/ReportController.js"></script>
-    <script src="js/views/pos.js"></script>
-    <script src="js/views/products.js"></script>
-    <script src="js/views/customers.js"></script>
-    <script src="js/views/suppliers.js"></script>
-    <script src="js/views/purchases.js"></script>
-    <script src="js/views/cash.js"></script>
-    <script src="js/views/inventory.js"></script>
-    <script src="js/views/reports.js"></script>
-    <script src="js/views/settings.js"></script>
-    <script src="js/app.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/utils/api-client.js"></script>
+    <script src="js/utils/formatter.js?v=2.1"></script>
+    <script src="js/utils/alerts.js?v=2.1"></script>
+    <script src="js/utils/backup.js?v=2.1"></script>
+    <script src="js/utils/debounce.js?v=2.4"></script>
+    <script src="js/utils/keyboard.js?v=2.3"></script>
+    <script src="js/utils/validator.js?v=2.1"></script>
+    <script src="js/db.js?v=2.2"></script>
+    <!-- Repositories -->
+    <script src="js/repositories/BaseRepository.js?v=2.2"></script>
+    <script src="js/repositories/ProductRepository.js?v=2.2"></script>
+    <script src="js/repositories/SaleRepository.js?v=2.2"></script>
+    <script src="js/repositories/CustomerRepository.js?v=2.2"></script>
+    <script src="js/repositories/PaymentRepository.js?v=2.3"></script>
+    <script src="js/repositories/PurchaseRepository.js?v=2.2"></script>
+    <script src="js/repositories/StockMovementRepository.js?v=2.2"></script>
+    <script src="js/repositories/CashRegisterRepository.js?v=2.2"></script>
+    <script src="js/repositories/CashMovementRepository.js?v=2.1"></script>
+    <script src="js/repositories/SupplierRepository.js?v=2.2"></script>
+    <script src="js/repositories/UserRepository.js?v=2.2"></script>
+    <script src="js/repositories/PasswordResetRepository.js?v=1.0"></script>
+    <script src="js/repositories/ExpenseRepository.js?v=1.0"></script>
+    <script src="js/repositories/CustomerCreditDepositRepository.js?v=1.0"></script>
+    <script src="js/repositories/CustomerCreditUseRepository.js?v=1.0"></script>
+    <script src="js/repositories/SaleReturnRepository.js?v=1.0"></script>
+    <script src="js/repositories/SupplierPaymentRepository.js?v=1.0"></script>
+    <script src="js/repositories/ProductPriceHistoryRepository.js?v=1.0"></script>
+    <!-- Graficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Services -->
+    <script src="js/services/PermissionService.js?v=1.0"></script>
+    <script src="js/services/AuditLogService.js?v=1.0"></script>
+    <script src="js/services/StockService.js?v=2.3"></script>
+    <script src="js/services/PaymentService.js?v=2.4"></script>
+    <script src="js/services/AccountService.js?v=2.3"></script>
+    <script src="js/services/SaleService.js?v=2.3"></script>
+    <script src="js/services/SaleReturnService.js?v=1.0"></script>
+    <script src="js/services/SupplierPaymentService.js?v=1.0"></script>
+    <script src="js/services/CustomerAccountService.js?v=1.0"></script>
+    <!-- Validators -->
+    <script src="js/validators/PaymentValidator.js?v=2.2"></script>
+    <script src="js/validators/SaleValidator.js?v=2.2"></script>
+    <script src="js/validators/ProductValidator.js?v=2.2"></script>
+    <!-- Models -->
+    <script src="js/models/User.js?v=2.3"></script>
+    <script src="js/models/PasswordReset.js?v=1.0"></script>
+    <script src="js/auth.js?v=2.1"></script>
+    <script src="js/utils/db-utilities.js?v=2.1"></script>
+    <script src="js/utils/fixCashMovementsSync.js?v=1.0"></script>
+    <script src="js/models/Product.js?v=2.1"></script>
+    <script src="js/models/ProductPriceHistory.js?v=1.0"></script>
+    <script src="js/services/ProductService.js?v=1.0"></script>
+    <script src="js/models/Sale.js?v=2.3"></script>
+    <script src="js/models/SaleReturn.js?v=1.0"></script>
+    <script src="js/models/Customer.js?v=2.1"></script>
+    <script src="js/models/Supplier.js?v=2.1"></script>
+    <script src="js/models/Purchase.js?v=2.3"></script>
+    <script src="js/models/SupplierPayment.js?v=1.0"></script>
+    <script src="js/models/CashRegister.js?v=2.3"></script>
+    <script src="js/models/StockMovement.js?v=2.1"></script>
+    <script src="js/models/CashMovement.js?v=2.1"></script>
+    <script src="js/models/Payment.js?v=2.1"></script>
+    <script src="js/models/CustomerCreditDeposit.js?v=1.0"></script>
+    <script src="js/models/CustomerCreditUse.js?v=1.0"></script>
+    <script src="js/models/Expense.js?v=1.0"></script>
+    <script src="js/utils/migrateHistoricalCost.js?v=1.0"></script>
+    <script src="js/utils/createHistoricalCashRegister.js?v=1.0"></script>
+    <script src="js/utils/verifyCashRegister.js?v=1.0"></script>
+    <script src="js/utils/deleteCashRegister.js?v=1.0"></script>
+    <script src="js/utils/updateCashRegister6.js?v=1.0"></script>
+    <script src="js/controllers/ProductController.js?v=2.1"></script>
+    <script src="js/controllers/POSController.js?v=2.2"></script>
+    <script src="js/controllers/CustomerController.js?v=2.1"></script>
+    <script src="js/controllers/SupplierController.js?v=2.1"></script>
+    <script src="js/controllers/CashController.js?v=2.1"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/controllers/ReportController.js?v=2.3"></script>
+    <script src="js/controllers/ExpenseController.js?v=1.0"></script>
+    <script src="js/views/pos.js?v=2.5"></script>
+    <script src="js/views/products.js?v=2.1"></script>
+    <script src="js/views/customers.js?v=2.4"></script>
+    <script src="js/views/suppliers.js?v=2.1"></script>
+    <script src="js/views/purchases.js?v=2.3"></script>
+    <script src="js/views/cash.js?v=2.1"></script>
+    <script src="js/views/inventory.js?v=2.1"></script>
+    <script src="js/views/reports.js?v=2.6"></script>
+    <script src="js/views/expenses.js?v=1.0"></script>
+    <script src="js/views/sales.js?v=2.1"></script>
+    <script src="js/views/settings.js?v=2.1"></script>
+    <script src="js/views/auditLogs.js?v=1.0"></script>
+    <script src="js/app.js?v=2.2"></script>
+    <script src="js/utils/zeroBrankitoAccount.js?v=1.0"></script>
 
     <script>
+        // Cargar manifest.json de manera segura (solo si no estamos en file://)
+        (function () {
+            try {
+                // Solo intentar cargar manifest si estamos en un servidor HTTP/HTTPS o en Electron
+                if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
+                    const link = document.createElement('link');
+                    link.rel = 'manifest';
+                    link.href = 'manifest.json';
+                    document.head.appendChild(link);
+                } else if (typeof require !== 'undefined' || window.navigator.userAgent.includes('Electron')) {
+                    // En Electron, cargar manifest de manera segura
+                    try {
+                        const link = document.createElement('link');
+                        link.rel = 'manifest';
+                        link.href = 'manifest.json';
+                        link.onerror = function () {
+                            // Silenciar error si no se puede cargar en Electron/file://
+                            try { this.remove(); } catch (e) { }
+                        };
+                        document.head.appendChild(link);
+                    } catch (e) {
+                        // Ignorar errores de manifest en Electron/file://
+                        console.log('Manifest.json no disponible (modo Electron/file://)');
+                    }
+                }
+            } catch (e) {
+                // Ignorar errores de manifest completamente
+                console.log('Manifest.json no disponible');
+            }
+        })();
+
         // Ocultar splash screen cuando todo cargue
         window.addEventListener('load', () => {
             setTimeout(() => {
@@ -117,7 +228,7 @@
         window.addEventListener('online', () => {
             document.getElementById('online-indicator').innerHTML = '🟢 Sistema Listo';
         });
-        
+
         window.addEventListener('offline', () => {
             document.getElementById('online-indicator').innerHTML = '🔴 Modo Offline';
         });
@@ -129,5 +240,7 @@
             overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
         }
     </script>
+
 </body>
+
 </html>

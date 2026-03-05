@@ -1,40 +1,39 @@
+/**
+ * Centralized Keyboard Navigation Utility
+ * Handles all keyboard navigation logic without business logic
+ */
 const KeyboardManager = {
+    // Registered navigation handlers
+    _navigationHandlers: new Map(),
+    
+    /**
+     * Initialize global keyboard shortcuts
+     */
     init() {
         document.addEventListener('keydown', (e) => {
+            // Handle Alt shortcuts for navigation
             if (e.altKey && !e.ctrlKey && !e.shiftKey) {
                 e.preventDefault();
                 this.handleAltShortcut(e.key);
+                return;
             }
             
+            // Handle Ctrl shortcuts
             if (e.ctrlKey && !e.altKey) {
                 this.handleCtrlShortcut(e);
+                return;
             }
             
+            // Handle Escape to close modals
             if (e.key === 'Escape') {
                 closeModal();
+                return;
             }
 
-            // Global Enter key support for modal primary buttons
+            // Handle Enter for modal primary buttons (only if no specific handler)
             if (e.key === 'Enter') {
-                const modal = document.querySelector('.modal');
-                if (modal) {
-                    const primaryBtn = modal.querySelector('.btn-primary, .btn-success, .btn-danger');
-                    // Only trigger if no other specific input is focused to avoid conflicts (like textarea or specific inputs that handle Enter)
-                    const activeTag = document.activeElement.tagName;
-                    // Allow Enter on inputs unless they have specific handlers (which usually preventDefault)
-                    // We want to trigger the primary action if the user is just "confirming" the form
-                    // But we must be careful not to trigger if the user is in a textarea or if the button is disabled
-                    if (primaryBtn && !primaryBtn.disabled && activeTag !== 'TEXTAREA' && activeTag !== 'BUTTON') {
-                        // Check if the focused element already has an Enter listener (hard to detect generically)
-                        // A safer approach: Trigger click on the primary button found in the modal footer
-                        const footerBtn = modal.querySelector('.modal-footer .btn-primary, .modal-footer .btn-success, .modal-footer .btn-danger');
-                        if (footerBtn && !footerBtn.disabled) {
-                            // Don't trigger if focus is on a button (it handles itself)
-                            e.preventDefault(); 
-                            footerBtn.click();
-                        }
-                    }
-                }
+                this.handleGlobalEnter(e);
+                return;
             }
         });
         
@@ -46,6 +45,36 @@ const KeyboardManager = {
         });
     },
     
+    /**
+     * Handle global Enter key for modal primary buttons
+     * Only triggers if no specific navigation handler is active
+     */
+    handleGlobalEnter(e) {
+        // Don't interfere if a navigation handler is active
+        if (this._navigationHandlers.size > 0) {
+            return;
+        }
+        
+        const modal = document.querySelector('.modal');
+        if (!modal) return;
+        
+        const activeTag = document.activeElement.tagName;
+        // Don't trigger if in textarea or button
+        if (activeTag === 'TEXTAREA' || activeTag === 'BUTTON') {
+            return;
+        }
+        
+        // Find primary button in modal footer
+        const footerBtn = modal.querySelector('.modal-footer .btn-primary, .modal-footer .btn-success, .modal-footer .btn-danger');
+        if (footerBtn && !footerBtn.disabled) {
+            e.preventDefault();
+            footerBtn.click();
+        }
+    },
+    
+    /**
+     * Handle Alt shortcuts
+     */
     handleAltShortcut(key) {
         const shortcuts = {
             '1': 'pos',
@@ -64,6 +93,9 @@ const KeyboardManager = {
         }
     },
     
+    /**
+     * Handle Ctrl shortcuts
+     */
     handleCtrlShortcut(e) {
         if (e.key === 'b' || e.key === 'B') {
             e.preventDefault();
@@ -81,9 +113,237 @@ const KeyboardManager = {
                 searchInput.select();
             }
         }
+    },
+    
+    /**
+     * Register a product list navigation handler
+     * @param {string} handlerId - Unique identifier for this handler
+     * @param {Object} config - Configuration object
+     * @param {HTMLElement} config.searchInput - Input element to attach listener
+     * @param {string} config.resultsContainerId - ID of results container
+     * @param {Function} config.onSelect - Callback when product is selected (receives productId)
+     * @param {Function} config.onEnterWithoutSelection - Callback when Enter is pressed without selection (receives searchTerm)
+     * @param {string} config.itemSelector - CSS selector for result items (default: '.search-result-item')
+     */
+    registerProductListNavigation(handlerId, config) {
+        const {
+            searchInput,
+            resultsContainerId,
+            onSelect,
+            onEnterWithoutSelection,
+            itemSelector = '.search-result-item'
+        } = config;
+        
+        if (!searchInput || !resultsContainerId) {
+            console.error('KeyboardManager: searchInput and resultsContainerId are required');
+            return;
+        }
+        
+        // Store handler config
+        this._navigationHandlers.set(handlerId, {
+            searchInput,
+            resultsContainerId,
+            onSelect,
+            onEnterWithoutSelection,
+            itemSelector
+        });
+        
+        // Attach keydown listener to search input
+        searchInput.addEventListener('keydown', (e) => {
+            this.handleProductListNavigation(handlerId, e);
+        });
+    },
+    
+    /**
+     * Unregister a product list navigation handler
+     * @param {string} handlerId - Handler identifier
+     */
+    unregisterProductListNavigation(handlerId) {
+        this._navigationHandlers.delete(handlerId);
+    },
+    
+    /**
+     * Handle product list navigation (Arrow keys and Enter)
+     * @param {string} handlerId - Handler identifier
+     * @param {KeyboardEvent} e - Keyboard event
+     */
+    handleProductListNavigation(handlerId, e) {
+        const handler = this._navigationHandlers.get(handlerId);
+        if (!handler) return;
+        
+        const { searchInput, resultsContainerId, onSelect, onEnterWithoutSelection, itemSelector } = handler;
+        const resultsDiv = document.getElementById(resultsContainerId);
+        
+        if (!resultsDiv) return;
+        
+        // Get all result items within the results container
+        const items = resultsDiv.querySelectorAll(itemSelector);
+        let selectedIndex = -1;
+        
+        // Find currently selected item
+        items.forEach((item, index) => {
+            if (item.classList.contains('selected')) {
+                selectedIndex = index;
+            }
+        });
+        
+        // Handle Arrow Down
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (items.length > 0) {
+                const nextIndex = (selectedIndex + 1) % items.length;
+                this.highlightResult(resultsContainerId, itemSelector, nextIndex);
+            }
+            return;
+        }
+        
+        // Handle Arrow Up
+        if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (items.length > 0) {
+                const prevIndex = (selectedIndex - 1 + items.length) % items.length;
+                this.highlightResult(resultsContainerId, itemSelector, prevIndex);
+            }
+            return;
+        }
+        
+        // Handle Enter
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            
+            // Check if dropdown has visible items (more reliable check)
+            // Check computed style to handle both inline and CSS class-based visibility
+            const computedStyle = window.getComputedStyle(resultsDiv);
+            const isDropdownVisible = computedStyle.display !== 'none' && 
+                                      computedStyle.visibility !== 'hidden' &&
+                                      resultsDiv.offsetParent !== null &&
+                                      items.length > 0;
+            
+            // If dropdown is visible and has items, try to select the highlighted item
+            if (isDropdownVisible) {
+                let productId = null;
+                let selectedItem = null;
+                
+                // First, try to find the item with 'selected' class (most reliable)
+                for (let i = 0; i < items.length; i++) {
+                    if (items[i].classList.contains('selected')) {
+                        selectedItem = items[i];
+                        break;
+                    }
+                }
+                
+                // If found selected item, use it
+                if (selectedItem) {
+                    // Try multiple ways to get productId to ensure we get it
+                    productId = selectedItem.dataset.productId || 
+                               selectedItem.getAttribute('data-product-id') ||
+                               selectedItem.getAttribute('data-productId');
+                    // Convert to number if it's a numeric string (IDs are typically numbers)
+                    if (productId && !isNaN(productId) && productId !== '') {
+                        productId = parseInt(productId, 10);
+                    }
+                } else if (selectedIndex !== -1 && selectedIndex < items.length) {
+                    // Fallback: use selectedIndex if valid
+                    selectedItem = items[selectedIndex];
+                    productId = selectedItem.dataset.productId || 
+                               selectedItem.getAttribute('data-product-id') ||
+                               selectedItem.getAttribute('data-productId');
+                    if (productId && !isNaN(productId) && productId !== '') {
+                        productId = parseInt(productId, 10);
+                    }
+                } else if (items.length > 0) {
+                    // Last resort: use first item if nothing is explicitly selected
+                    // This ensures that if dropdown is visible, Enter always selects something
+                    selectedItem = items[0];
+                    productId = selectedItem.dataset.productId || 
+                               selectedItem.getAttribute('data-product-id') ||
+                               selectedItem.getAttribute('data-productId');
+                    if (productId && !isNaN(productId) && productId !== '') {
+                        productId = parseInt(productId, 10);
+                    }
+                }
+                
+                // Call onSelect callback if productId found
+                if (productId && onSelect) {
+                    onSelect(productId);
+                    return;
+                }
+            }
+            
+            // No dropdown visible, no results, or no selection - call onEnterWithoutSelection
+            const searchTerm = searchInput.value.trim();
+            if (searchTerm && onEnterWithoutSelection) {
+                onEnterWithoutSelection(searchTerm);
+            }
+        }
+    },
+    
+    /**
+     * Highlight a result item by index
+     * @param {string} resultsContainerId - ID of results container
+     * @param {string} itemSelector - CSS selector for result items
+     * @param {number} index - Index to highlight
+     */
+    highlightResult(resultsContainerId, itemSelector, index) {
+        const resultsDiv = document.getElementById(resultsContainerId);
+        if (!resultsDiv) return;
+        
+        const items = resultsDiv.querySelectorAll(itemSelector);
+        if (items.length === 0) return;
+        
+        // Validate index
+        if (index < 0 || index >= items.length) {
+            index = 0; // Default to first item if index is invalid
+        }
+        
+        // Remove selection from all items and reset styles
+        items.forEach((item) => {
+            item.classList.remove('selected');
+            // Reset background to white (default)
+            item.style.background = 'white';
+            item.style.fontWeight = 'normal';
+        });
+        
+        // Find target item by index (try data-index attribute first, then by position)
+        let target = resultsDiv.querySelector(`${itemSelector}[data-index="${index}"]`);
+        
+        // Fallback: if not found by data-index, try by position in NodeList
+        if (!target && index >= 0 && index < items.length) {
+            target = items[index];
+        }
+        
+        // Highlight target item
+        if (target) {
+            target.classList.add('selected');
+            // Use a visible highlight color - gray background with darker text
+            target.style.background = '#e5e7eb'; // Light gray background
+            target.style.fontWeight = '600'; // Semi-bold for better visibility
+            // Scroll into view if needed
+            target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+    },
+    
+    /**
+     * Set selected index programmatically
+     * @param {string} resultsContainerId - ID of results container
+     * @param {string} itemSelector - CSS selector for result items
+     * @param {number} index - Index to select
+     */
+    setSelectedIndex(resultsContainerId, itemSelector, index) {
+        this.highlightResult(resultsContainerId, itemSelector, index);
+    },
+    
+    /**
+     * Clear all navigation handlers (useful for cleanup)
+     */
+    clearAllHandlers() {
+        this._navigationHandlers.clear();
     }
 };
 
+/**
+ * Shortcut Helper - Display keyboard shortcuts help
+ */
 const ShortcutHelper = {
     show() {
         const content = `
@@ -143,8 +403,20 @@ const ShortcutHelper = {
                         <td>Cerrar modal</td>
                     </tr>
                     <tr>
+                        <td style="padding: 0.5rem;"><kbd>F2</kbd></td>
+                        <td>Ir a Punto de Venta</td>
+                    </tr>
+                </table>
+                
+                <h4 style="margin-top: 1rem;">Navegación en Listas</h4>
+                <table>
+                    <tr>
+                        <td style="padding: 0.5rem;"><kbd>↑</kbd> / <kbd>↓</kbd></td>
+                        <td>Navegar lista de productos</td>
+                    </tr>
+                    <tr>
                         <td style="padding: 0.5rem;"><kbd>Enter</kbd></td>
-                        <td>Agregar producto (en POS)</td>
+                        <td>Seleccionar producto (no cierra la venta)</td>
                     </tr>
                 </table>
             </div>

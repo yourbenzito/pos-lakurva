@@ -1,51 +1,23 @@
-# Dependencies
+# Librerías (Muy pesadas)
 node_modules/
-package-lock.json
 
-# Build outputs
+# Base de datos local (NO subirla, la nube creará la suya)
+database.sqlite
+.sistema-ventas/
+
+# Compilaciones (El .exe que generaste)
 dist/
-build/
-*.exe
-*.dmg
-*.deb
-*.rpm
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
+# Archivos de Electron y sistema
 .DS_Store
 Thumbs.db
-desktop.ini
-
-# Logs
 *.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
 
-# Environment variables
-.env
-.env.local
+# Archivos temporales de desarrollo
+.vscode/
+.idea/
+*.lnk
+*.old
 
-# Database (si es local)
-*.db
-*.sqlite
-*.sqlite3
-
-# Temporary files
-*.tmp
-*.temp
-.cache/
-
-# Electron
-out/
-release/
-
-# Local data folders
-database/
-mi-app-electron/
+# Archivos de respaldo locales
+backups/

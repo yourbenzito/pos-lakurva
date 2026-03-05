@@ -20,7 +20,7 @@ const SystemValidator = {
         try {
             await db.init();
             const stores = ['products', 'sales', 'customers', 'suppliers', 
-                          'purchases', 'cashRegisters', 'stockMovements', 'categories', 'settings'];
+                          'purchases', 'cashRegisters', 'cashMovements', 'stockMovements', 'categories', 'settings'];
             
             for (const store of stores) {
                 const count = await db.count(store);
