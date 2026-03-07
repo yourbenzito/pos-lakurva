@@ -2,7 +2,11 @@ const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("path");
 const fs = require("fs");
 const os = require("os");
+const http = require("http");
 const { fork } = require("child_process");
+
+const BACKEND_PORT = process.env.PORT || 3000;
+const BACKEND_URL = `http://localhost:${BACKEND_PORT}`;
 
 // Iniciar servidor backend
 let serverProcess = null;
@@ -38,7 +42,27 @@ let isQuitting = false;
 /**
  * Crea la ventana principal de la aplicación
  */
-function createWindow() {
+// Esperar a que el backend esté listo antes de cargar
+function waitForServer(url, maxAttempts = 30) {
+  return new Promise((resolve, reject) => {
+    let attempts = 0;
+    const check = () => {
+      attempts++;
+      http.get(url, (res) => {
+        resolve();
+      }).on('error', () => {
+        if (attempts >= maxAttempts) {
+          reject(new Error(`Backend no respondió después de ${maxAttempts} intentos`));
+        } else {
+          setTimeout(check, 500);
+        }
+      });
+    };
+    check();
+  });
+}
+
+async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
@@ -49,7 +73,18 @@ function createWindow() {
     }
   });
 
-  mainWindow.loadFile("index.html");
+  try {
+    // Esperar a que el servidor backend esté listo
+    console.log('[Electron] Esperando al backend en', BACKEND_URL, '...');
+    await waitForServer(BACKEND_URL);
+    console.log('[Electron] Backend listo. Cargando app...');
+    mainWindow.loadURL(BACKEND_URL);
+  } catch (err) {
+    console.error('[Electron] Error:', err.message);
+    // Fallback: cargar index.html directamente
+    console.log('[Electron] Fallback: cargando index.html local');
+    mainWindow.loadFile("index.html");
+  }
 }
 
 const BACKUP_MAX_FILES = 30; // Mantener últimos 30 backups

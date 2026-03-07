@@ -65,7 +65,7 @@
         style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #2563eb; display: flex; align-items: center; justify-content: center; z-index: 9999;">
         <div style="text-align: center; color: white;">
             <div style="font-size: 4rem; margin-bottom: 1rem;">🛒</div>
-            <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">Minimarket La Kurva</h1>
+            <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">CajaFácil</h1>
             <div class="loading"></div>
             <p style="margin-top: 1rem; opacity: 0.8;">Cargando sistema...</p>
         </div>
@@ -80,7 +80,7 @@
         <nav id="sidebar">
             <div class="sidebar-content">
                 <div class="logo">
-                    <h2>🛒 Minimarket La Kurva</h2>
+                    <h2 id="sidebar-business-name">🛒 CajaFácil</h2>
                     <small style="opacity: 0.7; font-size: 0.75rem;">v1.0.0</small>
                 </div>
                 <div class="sidebar-top-row">
@@ -260,6 +260,18 @@
             setTimeout(() => {
                 document.getElementById('splash-screen').style.display = 'none';
                 document.getElementById('app').style.display = 'flex';
+
+                // Mostrar nombre del negocio en el sidebar
+                try {
+                    const businessData = localStorage.getItem('CURRENT_BUSINESS');
+                    if (businessData) {
+                        const business = JSON.parse(businessData);
+                        const sidebarName = document.getElementById('sidebar-business-name');
+                        if (sidebarName && business.name) {
+                            sidebarName.textContent = '🛒 ' + business.name;
+                        }
+                    }
+                } catch (e) { }
             }, 1000);
         });
 

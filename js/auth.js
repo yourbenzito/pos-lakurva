@@ -1,19 +1,19 @@
 class AuthManager {
     static SESSION_KEY = 'pos_current_user';
 
-    static async login(username, password) {
-        const user = await User.authenticate(username, password);
+    static async login(username, password, businessName) {
+        const user = await User.authenticate(username, password, businessName);
         if (!user) {
             throw new Error('Usuario o contraseña incorrectos');
         }
 
-        // C8: Incluir rol en la sesión
         const effectiveRole = User.getEffectiveRole(user);
 
         const session = {
             id: user.id,
             username: user.username,
             role: effectiveRole,
+            business_id: user.business_id || localStorage.getItem('BUSINESS_ID') || 1,
             loginTime: new Date().toISOString()
         };
 
@@ -23,6 +23,9 @@ class AuthManager {
 
     static logout() {
         sessionStorage.removeItem(this.SESSION_KEY);
+        localStorage.removeItem('AUTH_TOKEN');
+        localStorage.removeItem('BUSINESS_ID');
+        localStorage.removeItem('CURRENT_BUSINESS');
         window.location.reload();
     }
 
@@ -59,7 +62,7 @@ class AuthManager {
                     <div class="login-content">
                         <div class="login-header">
                             <div class="login-header-icon">🛒</div>
-                            <h1 class="login-title">POS Minimarket</h1>
+                            <h1 class="login-title">CajaFácil</h1>
                             <p class="login-subtitle" id="login-subtitle">Inicia sesión o crea una cuenta</p>
                         </div>
 

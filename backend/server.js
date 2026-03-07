@@ -19,7 +19,7 @@ app.use(compression());
 
 // Middleware para Multi-Tenancy y Auth
 const authMiddleware = (req, res, next) => {
-    const publicPaths = ['/api/auth/login', '/api/auth/register', '/api/status', '/api/utils/hash'];
+    const publicPaths = ['/api/auth/login', '/api/auth/register', '/api/auth/join', '/api/status', '/api/utils/hash'];
     if (publicPaths.includes(req.path)) return next();
 
     const token = req.headers['authorization']?.split(' ')[1];
@@ -166,11 +166,41 @@ db.exec(schema, (err) => {
                 });
             });
 
+            // CRITICAL: Backfill business_id=1 para datos existentes que tengan NULL
+            const allTables = ['products', 'categories', 'customers', 'suppliers', 'sales',
+                'cashRegisters', 'cashMovements', 'expenses', 'users', 'auditLogs',
+                'purchases', 'payments', 'settings', 'stockMovements', 'customerCreditDeposits',
+                'customerCreditUses', 'saleReturns', 'supplierPayments', 'productPriceHistory', 'passwordResets'];
+
+            allTables.forEach(table => {
+                db.run(`UPDATE ${table} SET business_id = 1 WHERE business_id IS NULL`, (err) => {
+                    // Ignoramos errores (tabla podría no tener la columna aún)
+                });
+            });
+
             // Crear negocio por defecto si no hay ninguno
             db.get("SELECT COUNT(*) as count FROM businesses", (err, row) => {
                 if (!err && row.count === 0) {
-                    console.log('[Migration] Creando negocio por defecto...');
-                    db.run("INSERT INTO businesses (id, name, slug, createdAt) VALUES (1, 'Mi Negocio', 'mi-negocio', ?)", [new Date().toISOString()]);
+                    const code = 'ADMIN1'; // Código de acceso por defecto
+                    console.log('[Migration] Creando negocio por defecto con código:', code);
+                    db.run("INSERT INTO businesses (id, name, slug, accessCode, createdAt) VALUES (1, 'Mi Negocio', 'mi-negocio', ?, ?)", [code, new Date().toISOString()]);
+                }
+            });
+
+            // Agregar columna accessCode a businesses si no existe
+            db.run("ALTER TABLE businesses ADD COLUMN accessCode TEXT", (err) => {
+                if (!err) {
+                    // Si la columna se acaba de crear, generar códigos para negocios existentes
+                    db.all("SELECT id FROM businesses WHERE accessCode IS NULL", (err2, rows) => {
+                        if (!err2 && rows) {
+                            rows.forEach(row => {
+                                const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                                let code = '';
+                                for (let i = 0; i < 6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+                                db.run("UPDATE businesses SET accessCode = ? WHERE id = ?", [code, row.id]);
+                            });
+                        }
+                    });
                 }
             });
         });
@@ -204,26 +234,47 @@ const dbAll = (sql, params = []) => new Promise((resolve, reject) => {
 
 // --- RUTAS DE AUTENTICACIÓN ---
 
+// Generar código de acceso aleatorio (6 caracteres alfanuméricos)
+function generateAccessCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Sin 0,O,1,I para evitar confusión
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+}
+
+// 1. CREAR NEGOCIO NUEVO (Registro)
 app.post('/api/auth/register', async (req, res) => {
-    const { businessName, username, password, phone } = req.body;
+    const { businessName, username, password } = req.body;
+    if (!businessName || !username || !password) {
+        return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+    }
     const slug = businessName.toLowerCase().replace(/ /g, '-').replace(/[^\w-]/g, '');
+    const accessCode = generateAccessCode();
 
     try {
         await dbRun('BEGIN TRANSACTION');
 
-        // 1. Crear Negocio
+        // Verificar que el nombre de negocio no exista
+        const existing = await dbGet("SELECT id FROM businesses WHERE slug = ?", [slug]);
+        if (existing) {
+            await dbRun('ROLLBACK');
+            return res.status(400).json({ error: 'Ya existe un negocio con ese nombre' });
+        }
+
+        // 1. Crear Negocio con código de acceso
         const bizResult = await dbRun(
-            "INSERT INTO businesses (name, slug, createdAt, plan) VALUES (?, ?, ?, ?)",
-            [businessName, slug, new Date().toISOString(), 'basic']
+            "INSERT INTO businesses (name, slug, accessCode, createdAt, plan) VALUES (?, ?, ?, ?, ?)",
+            [businessName, slug, accessCode, new Date().toISOString(), 'basic']
         );
         const businessId = bizResult.lastID;
 
         // 2. Crear Usuario Owner
-        // Hasheamos con bcrypt
         const hashedPassword = bcrypt.hashSync(password, 10);
-        await dbRun(
-            "INSERT INTO users (username, password, role, phone, business_id, createdAt) VALUES (?, ?, ?, ?, ?, ?)",
-            [username, hashedPassword, 'owner', phone, businessId, new Date().toISOString()]
+        const userResult = await dbRun(
+            "INSERT INTO users (username, password, role, business_id, createdAt) VALUES (?, ?, ?, ?, ?)",
+            [username, hashedPassword, 'owner', businessId, new Date().toISOString()]
         );
 
         // 3. Crear Categoría por defecto
@@ -233,32 +284,59 @@ app.post('/api/auth/register', async (req, res) => {
         );
 
         await dbRun('COMMIT');
-        res.json({ success: true, businessId, username });
+
+        // Auto-login: generar token
+        const token = jwt.sign({
+            userId: userResult.lastID,
+            business_id: businessId,
+            role: 'owner'
+        }, JWT_SECRET, { expiresIn: '30d' });
+
+        const business = { id: businessId, name: businessName, slug, accessCode };
+        const user = { id: userResult.lastID, username, role: 'owner', business_id: businessId };
+
+        res.json({ user, business, token, accessCode });
     } catch (err) {
         try { await dbRun('ROLLBACK'); } catch (e) { }
         res.status(500).json({ error: err.message });
     }
 });
 
+// 2. INICIAR SESIÓN (Login con nombre de negocio)
 app.post('/api/auth/login', async (req, res) => {
-    const { username, password } = req.body;
+    const { businessName, username, password } = req.body;
     try {
-        const user = await dbGet("SELECT * FROM users WHERE username = ?", [username]);
-        if (!user) return res.status(401).json({ error: 'Usuario no encontrado' });
+        let user;
+        let business;
 
-        // Verificar password (soporta hash simple SHA256 para legacy o bcrypt)
+        if (businessName) {
+            // Buscar negocio por nombre (case-insensitive)
+            const slug = businessName.toLowerCase().replace(/ /g, '-').replace(/[^\w-]/g, '');
+            business = await dbGet("SELECT * FROM businesses WHERE slug = ? OR LOWER(name) = LOWER(?)", [slug, businessName]);
+            if (!business) return res.status(401).json({ error: `Negocio "${businessName}" no encontrado` });
+
+            user = await dbGet("SELECT * FROM users WHERE LOWER(username) = LOWER(?) AND business_id = ?", [username, business.id]);
+        } else {
+            // Sin nombre de negocio: buscar usuario global (compatibilidad)
+            user = await dbGet("SELECT * FROM users WHERE LOWER(username) = LOWER(?)", [username]);
+            if (user) {
+                business = await dbGet("SELECT * FROM businesses WHERE id = ?", [user.business_id]);
+            }
+        }
+
+        if (!user) return res.status(401).json({ error: 'Usuario no encontrado en ese negocio' });
+
+        // Verificar password (soporta SHA256 legacy o bcrypt)
         let isValid = false;
-        if (user.password.length === 64) { // SHA256 legacy (64 chars)
+        if (user.password && user.password.length === 64) {
             const crypto = require('crypto');
             const hash = crypto.createHash('sha256').update(password).digest('hex');
             isValid = (hash === user.password);
-        } else {
+        } else if (user.password) {
             isValid = bcrypt.compareSync(password, user.password);
         }
 
         if (!isValid) return res.status(401).json({ error: 'Contraseña incorrecta' });
-
-        const business = await dbGet("SELECT * FROM businesses WHERE id = ?", [user.business_id]);
 
         const token = jwt.sign({
             userId: user.id,
@@ -267,7 +345,61 @@ app.post('/api/auth/login', async (req, res) => {
         }, JWT_SECRET, { expiresIn: '30d' });
 
         delete user.password;
+        // No enviar el accessCode en login normal (solo al dueño)
+        if (business) delete business.accessCode;
         res.json({ user, business, token });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 3. UNIRSE A NEGOCIO (Empleado con código de acceso)
+app.post('/api/auth/join', async (req, res) => {
+    const { accessCode, username, password } = req.body;
+    if (!accessCode || !username || !password) {
+        return res.status(400).json({ error: 'Todos los campos son obligatorios' });
+    }
+
+    try {
+        // Buscar negocio por código
+        const business = await dbGet("SELECT * FROM businesses WHERE accessCode = ?", [accessCode.toUpperCase()]);
+        if (!business) return res.status(404).json({ error: 'Código de acceso inválido' });
+
+        // Verificar que el username no exista en este negocio
+        const existingUser = await dbGet(
+            "SELECT id FROM users WHERE LOWER(username) = LOWER(?) AND business_id = ?",
+            [username, business.id]
+        );
+        if (existingUser) return res.status(400).json({ error: 'Este usuario ya existe en el negocio' });
+
+        // Crear usuario como cajero
+        const hashedPassword = bcrypt.hashSync(password, 10);
+        const userResult = await dbRun(
+            "INSERT INTO users (username, password, role, business_id, createdAt) VALUES (?, ?, ?, ?, ?)",
+            [username, hashedPassword, 'cashier', business.id, new Date().toISOString()]
+        );
+
+        const token = jwt.sign({
+            userId: userResult.lastID,
+            business_id: business.id,
+            role: 'cashier'
+        }, JWT_SECRET, { expiresIn: '30d' });
+
+        const user = { id: userResult.lastID, username, role: 'cashier', business_id: business.id };
+        delete business.accessCode;
+
+        res.json({ user, business, token });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// 4. VER CÓDIGO DE ACCESO (Solo owner)
+app.get('/api/auth/access-code', async (req, res) => {
+    try {
+        const business = await dbGet("SELECT accessCode FROM businesses WHERE id = ?", [req.business_id]);
+        if (!business) return res.status(404).json({ error: 'Negocio no encontrado' });
+        res.json({ accessCode: business.accessCode });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

@@ -133,13 +133,13 @@ class User {
         return await this.update(user.id, { password: newPassword });
     }
 
-    static async authenticate(username, password) {
+    static async authenticate(username, password, businessName) {
         try {
             // Si estamos en modo SQLite (Servidor), usamos el nuevo endpoint de Auth
             if (db.mode === 'sqlite' && window.ApiClient) {
-                console.log(`[Auth] Autenticando vía servidor para: ${username}`);
+                console.log(`[Auth] Autenticando vía servidor para: ${username} en negocio: ${businessName || '(sin especificar)'}`);
                 try {
-                    const result = await window.ApiClient.post('auth/login', { username, password });
+                    const result = await window.ApiClient.post('auth/login', { businessName, username, password });
 
                     // Guardar datos de sesión
                     localStorage.setItem('AUTH_TOKEN', result.token);
@@ -150,7 +150,7 @@ class User {
                     return result.user;
                 } catch (error) {
                     console.warn('[Auth] Error en login de servidor:', error.message);
-                    return null;
+                    throw error; // Propagar el error para mostrarlo en UI
                 }
             }
 
@@ -174,7 +174,6 @@ class User {
             }
 
             console.log(`[Auth] Autenticación local exitosa: ${username}`);
-            // En modo local, el business_id por defecto es 1
             localStorage.setItem('BUSINESS_ID', user.business_id || 1);
 
             return user;
