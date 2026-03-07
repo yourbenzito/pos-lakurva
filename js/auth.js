@@ -64,6 +64,12 @@ class AuthManager {
                         </div>
 
                         <form id="login-form" class="login-form">
+                            <div id="business-name-group" style="display: none;" class="login-form-group">
+                                <label class="login-label" for="login-business-name">🏪 Nombre de tu Negocio</label>
+                                <input type="text" id="login-business-name" autocomplete="organization" class="login-input" placeholder="Ej: Minimarket Don Juan">
+                                <small style="color: #9ca3af; font-size: 0.75rem;">Este nombre aparecerá en tus boletas y reportes</small>
+                            </div>
+
                             <div class="login-form-group">
                                 <label class="login-label" for="login-username">Usuario</label>
                                 <input type="text" id="login-username" autocomplete="username" required class="login-input" placeholder="Ingresa tu usuario">
@@ -176,6 +182,8 @@ class AuthManager {
         document.body.insertAdjacentHTML('beforeend', loginHTML);
 
         const form = document.getElementById('login-form');
+        const businessNameInput = document.getElementById('login-business-name');
+        const businessNameGroup = document.getElementById('business-name-group');
         const usernameInput = document.getElementById('login-username');
         const passwordInput = document.getElementById('login-password');
         const confirmPasswordInput = document.getElementById('confirm-password');
@@ -211,11 +219,13 @@ class AuthManager {
 
             if (isRegisterMode) {
                 // Modo Registro
-                subtitle.textContent = 'Crea tu nueva cuenta';
-                loginBtn.textContent = 'Crear Cuenta';
+                subtitle.textContent = 'Registra tu negocio y crea tu cuenta';
+                loginBtn.textContent = 'Crear Mi Negocio';
                 toggleModeBtn.textContent = '¿Ya tienes cuenta? Inicia sesión aquí';
                 confirmPasswordGroup.style.display = 'block';
                 confirmPasswordInput.required = true;
+                businessNameGroup.style.display = 'block';
+                businessNameInput.required = true;
                 passwordInput.autocomplete = 'new-password';
                 usernameInput.autocomplete = 'username';
             } else {
@@ -225,15 +235,19 @@ class AuthManager {
                 toggleModeBtn.textContent = '¿No tienes cuenta? Regístrate aquí';
                 confirmPasswordGroup.style.display = 'none';
                 confirmPasswordInput.required = false;
+                businessNameGroup.style.display = 'none';
+                businessNameInput.required = false;
                 passwordInput.autocomplete = 'current-password';
                 usernameInput.autocomplete = 'username';
             }
 
             errorDiv.style.display = 'none';
+            businessNameInput.value = '';
             usernameInput.value = '';
             passwordInput.value = '';
             confirmPasswordInput.value = '';
-            usernameInput.focus();
+            if (isRegisterMode) businessNameInput.focus();
+            else usernameInput.focus();
         });
 
         usernameInput.style.outline = 'none';
@@ -303,6 +317,14 @@ class AuthManager {
 
             if (isRegisterMode) {
                 // MODO REGISTRO
+                const businessName = businessNameInput.value.trim();
+
+                if (!businessName) {
+                    errorDiv.textContent = 'Por favor ingresa el nombre de tu negocio';
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+
                 if (password !== confirmPassword) {
                     errorDiv.textContent = 'Las contraseñas no coinciden';
                     errorDiv.style.display = 'block';
@@ -316,52 +338,66 @@ class AuthManager {
                 }
 
                 loginBtn.disabled = true;
-                loginBtn.textContent = 'Creando cuenta...';
+                loginBtn.textContent = 'Creando negocio...';
                 errorDiv.style.display = 'none';
 
                 try {
-                    // Verificar si el usuario ya existe
-                    const users = await User.getAll();
-                    const existingUser = users.find(u => u.username === username);
+                    // Si estamos en modo SQLite (servidor), usar el endpoint de registro
+                    if (db.mode === 'sqlite' && window.ApiClient) {
+                        const result = await window.ApiClient.post('auth/register', {
+                            businessName: businessName,
+                            username: username,
+                            password: password
+                        });
 
-                    if (existingUser) {
-                        errorDiv.textContent = 'Este nombre de usuario ya está en uso';
-                        errorDiv.style.display = 'block';
-                        loginBtn.disabled = false;
-                        loginBtn.textContent = 'Crear Cuenta';
-                        return;
+                        // Auto-login después del registro
+                        await AuthManager.login(username, password);
+
+                        document.getElementById('login-screen').remove();
+                        if (appDiv) appDiv.style.display = 'flex';
+
+                        showNotification(`¡Bienvenido! Tu negocio "${businessName}" fue creado exitosamente 🎉`, 'success');
+
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 500);
+                    } else {
+                        // Modo IndexedDB (local) - flujo original
+                        const users = await User.getAll();
+                        const existingUser = users.find(u => u.username === username);
+
+                        if (existingUser) {
+                            errorDiv.textContent = 'Este nombre de usuario ya está en uso';
+                            errorDiv.style.display = 'block';
+                            loginBtn.disabled = false;
+                            loginBtn.textContent = 'Crear Mi Negocio';
+                            return;
+                        }
+
+                        const newUser = await User.create(username, password);
+                        await new Promise(resolve => setTimeout(resolve, 100));
+
+                        const verifyUser = await User.findByUsername(username);
+                        if (!verifyUser) {
+                            throw new Error('Error: El usuario no se guardó correctamente.');
+                        }
+
+                        await AuthManager.login(username, password);
+                        document.getElementById('login-screen').remove();
+                        if (appDiv) appDiv.style.display = 'flex';
+
+                        showNotification(`¡Bienvenido ${username}! Negocio "${businessName}" creado`, 'success');
+
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 500);
                     }
-
-                    // Crear nuevo usuario (sin teléfono - recuperación de contraseña usa PIN o código)
-                    const newUser = await User.create(username, password);
-
-                    // Esperar un momento para asegurar que la transacción se complete
-                    await new Promise(resolve => setTimeout(resolve, 100));
-
-                    // Verificar que el usuario se creó correctamente
-                    const verifyUser = await User.findByUsername(username);
-                    if (!verifyUser) {
-                        throw new Error('Error: El usuario no se guardó correctamente. Por favor intenta nuevamente.');
-                    }
-
-                    // Iniciar sesión automáticamente
-                    await AuthManager.login(username, password);
-
-                    document.getElementById('login-screen').remove();
-
-                    if (appDiv) appDiv.style.display = 'flex';
-
-                    showNotification(`¡Bienvenido ${username}! Cuenta creada exitosamente`, 'success');
-
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 500);
 
                 } catch (error) {
-                    errorDiv.textContent = 'Error al crear la cuenta: ' + error.message;
+                    errorDiv.textContent = 'Error al crear el negocio: ' + error.message;
                     errorDiv.style.display = 'block';
                     loginBtn.disabled = false;
-                    loginBtn.textContent = 'Crear Cuenta';
+                    loginBtn.textContent = 'Crear Mi Negocio';
                 }
             } else {
                 // MODO LOGIN
