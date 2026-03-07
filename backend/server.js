@@ -5,9 +5,44 @@ const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+const JWT_SECRET = 'pos-lakurva-secret-chile-2026'; // En producción usar variable de entorno
 
 const app = express();
 const PORT = 3000;
+
+app.use(cors());
+app.use(express.json({ limit: '50mb' }));
+app.use(compression());
+
+// Middleware para Multi-Tenancy y Auth
+const authMiddleware = (req, res, next) => {
+    const publicPaths = ['/api/auth/login', '/api/auth/register', '/api/status', '/api/utils/hash'];
+    if (publicPaths.includes(req.path)) return next();
+
+    const token = req.headers['authorization']?.split(' ')[1];
+
+    // Para compatibilidad inicial mientras migramos el frontend, si no hay token 
+    // pero hay un x-business-id, lo dejamos pasar (solo temporalmente)
+    if (!token) {
+        req.business_id = parseInt(req.headers['x-business-id']) || 1;
+        req.userId = 1; // Default admin
+        return next();
+    }
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.userId = decoded.userId;
+        req.business_id = decoded.business_id;
+        next();
+    } catch (err) {
+        return res.status(401).json({ error: 'Token inválido o expirado' });
+    }
+};
+
+app.use(authMiddleware);
 
 // Configuración de base de datos
 const DATA_DIR = process.env.DATA_DIR || path.join(os.homedir(), '.sistema-ventas');
@@ -40,10 +75,12 @@ db.exec(schema, (err) => {
                 { name: 'isActive', type: 'INTEGER DEFAULT 1' },
                 { name: 'deletedAt', type: 'TEXT' },
                 { name: 'createdBy', type: 'INTEGER' },
-                { name: 'updatedBy', type: 'INTEGER' }
+                { name: 'updatedBy', type: 'INTEGER' },
+                { name: 'business_id', type: 'INTEGER DEFAULT 1' }
             ],
             categories: [
-                { name: 'color', type: "TEXT DEFAULT '#6b7280'" }
+                { name: 'color', type: "TEXT DEFAULT '#6b7280'" },
+                { name: 'business_id', type: 'INTEGER DEFAULT 1' }
             ],
             customers: [
                 { name: 'creditLimit', type: 'REAL' },
@@ -52,7 +89,8 @@ db.exec(schema, (err) => {
                 { name: 'isActive', type: 'INTEGER DEFAULT 1' },
                 { name: 'deletedAt', type: 'TEXT' },
                 { name: 'createdBy', type: 'INTEGER' },
-                { name: 'updatedBy', type: 'INTEGER' }
+                { name: 'updatedBy', type: 'INTEGER' },
+                { name: 'business_id', type: 'INTEGER DEFAULT 1' }
             ],
             suppliers: [
                 { name: 'contact', type: 'TEXT' },
@@ -60,12 +98,14 @@ db.exec(schema, (err) => {
                 { name: 'isActive', type: 'INTEGER DEFAULT 1' },
                 { name: 'deletedAt', type: 'TEXT' },
                 { name: 'createdBy', type: 'INTEGER' },
-                { name: 'updatedBy', type: 'INTEGER' }
+                { name: 'updatedBy', type: 'INTEGER' },
+                { name: 'business_id', type: 'INTEGER DEFAULT 1' }
             ],
             sales: [
                 { name: 'paymentDetails', type: 'JSON' },
                 { name: 'updatedAt', type: 'TEXT' },
-                { name: 'updatedBy', type: 'INTEGER' }
+                { name: 'updatedBy', type: 'INTEGER' },
+                { name: 'business_id', type: 'INTEGER DEFAULT 1' }
             ],
             cashRegisters: [
                 { name: 'initialAmount', type: 'REAL DEFAULT 0' },
@@ -73,23 +113,28 @@ db.exec(schema, (err) => {
                 { name: 'expectedAmount', type: 'REAL DEFAULT 0' },
                 { name: 'difference', type: 'REAL DEFAULT 0' },
                 { name: 'denominations', type: 'JSON' },
-                { name: 'paymentSummary', type: 'JSON' }
+                { name: 'paymentSummary', type: 'JSON' },
+                { name: 'business_id', type: 'INTEGER DEFAULT 1' }
             ],
             cashMovements: [
                 { name: 'paymentId', type: 'INTEGER' },
-                { name: 'reason', type: 'TEXT' }
+                { name: 'reason', type: 'TEXT' },
+                { name: 'business_id', type: 'INTEGER DEFAULT 1' }
             ],
             expenses: [
                 { name: 'reason', type: 'TEXT' },
-                { name: 'userId', type: 'INTEGER' }
+                { name: 'userId', type: 'INTEGER' },
+                { name: 'business_id', type: 'INTEGER DEFAULT 1' }
             ],
             users: [
                 { name: 'updatedAt', type: 'TEXT' },
                 { name: 'recoveryCode', type: 'TEXT' },
-                { name: 'recoveryCodeGeneratedAt', type: 'TEXT' }
+                { name: 'recoveryCodeGeneratedAt', type: 'TEXT' },
+                { name: 'business_id', type: 'INTEGER DEFAULT 1' }
             ],
             auditLogs: [
-                { name: 'username', type: 'TEXT' }
+                { name: 'username', type: 'TEXT' },
+                { name: 'business_id', type: 'INTEGER DEFAULT 1' }
             ],
             purchases: [
                 { name: 'documentType', type: 'TEXT' },
@@ -99,11 +144,16 @@ db.exec(schema, (err) => {
                 { name: 'ivaAmount', type: 'REAL DEFAULT 0' },
                 { name: 'paidAmount', type: 'REAL DEFAULT 0' },
                 { name: 'dueDate', type: 'TEXT' },
-                { name: 'vatMode', type: 'TEXT' }
+                { name: 'vatMode', type: 'TEXT' },
+                { name: 'business_id', type: 'INTEGER DEFAULT 1' }
             ],
             payments: [
                 { name: 'paymentMethod', type: 'TEXT' },
-                { name: 'notes', type: 'TEXT' }
+                { name: 'notes', type: 'TEXT' },
+                { name: 'business_id', type: 'INTEGER DEFAULT 1' }
+            ],
+            settings: [
+                { name: 'business_id', type: 'INTEGER DEFAULT 1' }
             ]
         };
 
@@ -112,11 +162,16 @@ db.exec(schema, (err) => {
                 tablesSchema[table].forEach(col => {
                     db.run(`ALTER TABLE ${table} ADD COLUMN ${col.name} ${col.type}`, (err) => {
                         // Ignoramos error si la columna ya existe
-                        if (err && !err.message.includes('duplicate column name')) {
-                            // Omitir log para evitar ruido innecesario si es solo duplicado
-                        }
                     });
                 });
+            });
+
+            // Crear negocio por defecto si no hay ninguno
+            db.get("SELECT COUNT(*) as count FROM businesses", (err, row) => {
+                if (!err && row.count === 0) {
+                    console.log('[Migration] Creando negocio por defecto...');
+                    db.run("INSERT INTO businesses (id, name, slug, createdAt) VALUES (1, 'Mi Negocio', 'mi-negocio', ?)", [new Date().toISOString()]);
+                }
             });
         });
 
@@ -147,9 +202,76 @@ const dbAll = (sql, params = []) => new Promise((resolve, reject) => {
     });
 });
 
-app.use(compression());
-app.use(cors());
-app.use(express.json({ limit: '100mb' })); // Permitir backups grandes
+// --- RUTAS DE AUTENTICACIÓN ---
+
+app.post('/api/auth/register', async (req, res) => {
+    const { businessName, username, password, phone } = req.body;
+    const slug = businessName.toLowerCase().replace(/ /g, '-').replace(/[^\w-]/g, '');
+
+    try {
+        await dbRun('BEGIN TRANSACTION');
+
+        // 1. Crear Negocio
+        const bizResult = await dbRun(
+            "INSERT INTO businesses (name, slug, createdAt, plan) VALUES (?, ?, ?, ?)",
+            [businessName, slug, new Date().toISOString(), 'basic']
+        );
+        const businessId = bizResult.lastID;
+
+        // 2. Crear Usuario Owner
+        // Hasheamos con bcrypt
+        const hashedPassword = bcrypt.hashSync(password, 10);
+        await dbRun(
+            "INSERT INTO users (username, password, role, phone, business_id, createdAt) VALUES (?, ?, ?, ?, ?, ?)",
+            [username, hashedPassword, 'owner', phone, businessId, new Date().toISOString()]
+        );
+
+        // 3. Crear Categoría por defecto
+        await dbRun(
+            "INSERT INTO categories (name, business_id, color) VALUES (?, ?, ?)",
+            ['General', businessId, '#6b7280']
+        );
+
+        await dbRun('COMMIT');
+        res.json({ success: true, businessId, username });
+    } catch (err) {
+        try { await dbRun('ROLLBACK'); } catch (e) { }
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+    const { username, password } = req.body;
+    try {
+        const user = await dbGet("SELECT * FROM users WHERE username = ?", [username]);
+        if (!user) return res.status(401).json({ error: 'Usuario no encontrado' });
+
+        // Verificar password (soporta hash simple SHA256 para legacy o bcrypt)
+        let isValid = false;
+        if (user.password.length === 64) { // SHA256 legacy (64 chars)
+            const crypto = require('crypto');
+            const hash = crypto.createHash('sha256').update(password).digest('hex');
+            isValid = (hash === user.password);
+        } else {
+            isValid = bcrypt.compareSync(password, user.password);
+        }
+
+        if (!isValid) return res.status(401).json({ error: 'Contraseña incorrecta' });
+
+        const business = await dbGet("SELECT * FROM businesses WHERE id = ?", [user.business_id]);
+
+        const token = jwt.sign({
+            userId: user.id,
+            business_id: user.business_id,
+            role: user.role
+        }, JWT_SECRET, { expiresIn: '30d' });
+
+        delete user.password;
+        res.json({ user, business, token });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // Servir archivos estáticos del frontend para que otros dispositivos (Celulares/Tablets) puedan entrar
 app.use(express.static(path.join(__dirname, '..')));
@@ -178,7 +300,8 @@ app.get('/api/status', (req, res) => {
         status: 'online',
         ip: getLocalIP(),
         port: PORT,
-        dbPath: dbPath
+        dbPath: dbPath,
+        time: new Date().toISOString()
     });
 });
 
@@ -554,15 +677,17 @@ app.delete('/api/complex/purchase/:id', async (req, res) => {
 
 app.get('/api/:table', async (req, res) => {
     const { table } = req.params;
+    const { business_id } = req;
     const query = req.query;
-    let sql = `SELECT * FROM ${table}`;
-    const params = [];
+    let sql = `SELECT * FROM ${table} WHERE business_id = ?`;
+    const params = [business_id];
+
     if (Object.keys(query).length > 0) {
         const filters = Object.keys(query).map(key => {
             params.push(query[key]);
             return `${key} = ?`;
         }).join(' AND ');
-        sql += ` WHERE ${filters}`;
+        sql += ` AND (${filters})`;
     }
     try {
         const rows = await dbAll(sql, params);
@@ -574,12 +699,12 @@ app.get('/api/:table', async (req, res) => {
 
 app.get('/api/:table/:id', async (req, res) => {
     const { table, id } = req.params;
+    const { business_id } = req;
     try {
         const pk = table === 'settings' ? 'key' : 'id';
-        const row = await dbGet(`SELECT * FROM ${table} WHERE ${pk} = ?`, [id]);
+        const row = await dbGet(`SELECT * FROM ${table} WHERE ${pk} = ? AND business_id = ?`, [id, business_id]);
         if (!row && !isNaN(id) && table !== 'settings') {
-            // Re-intentar como número si el ID es numérico
-            const rowNum = await dbGet(`SELECT * FROM ${table} WHERE id = ?`, [Number(id)]);
+            const rowNum = await dbGet(`SELECT * FROM ${table} WHERE id = ? AND business_id = ?`, [Number(id), business_id]);
             return res.json(parseRow(rowNum));
         }
         res.json(parseRow(row));
@@ -590,8 +715,9 @@ app.get('/api/:table/:id', async (req, res) => {
 
 app.get('/api/:table/stats/count', async (req, res) => {
     const { table } = req.params;
+    const { business_id } = req;
     try {
-        const row = await dbGet(`SELECT COUNT(*) as total FROM ${table}`);
+        const row = await dbGet(`SELECT COUNT(*) as total FROM ${table} WHERE business_id = ?`, [business_id]);
         res.json(row ? row.total : 0);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -601,8 +727,9 @@ app.get('/api/:table/stats/count', async (req, res) => {
 app.get('/api/:table/range', async (req, res) => {
     const { table } = req.params;
     const { index, lower, upper } = req.query;
+    const { business_id } = req;
     try {
-        const rows = await dbAll(`SELECT * FROM ${table} WHERE ${index} BETWEEN ? AND ?`, [lower, upper]);
+        const rows = await dbAll(`SELECT * FROM ${table} WHERE business_id = ? AND ${index} BETWEEN ? AND ?`, [business_id, lower, upper]);
         res.json(rows.map(parseRow));
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -611,8 +738,9 @@ app.get('/api/:table/range', async (req, res) => {
 
 app.get('/api/:table/index/:indexName/:value', async (req, res) => {
     const { table, indexName, value } = req.params;
+    const { business_id } = req;
     try {
-        const rows = await dbAll(`SELECT * FROM ${table} WHERE ${indexName} = ?`, [value]);
+        const rows = await dbAll(`SELECT * FROM ${table} WHERE business_id = ? AND ${indexName} = ?`, [business_id, value]);
         res.json(rows.map(parseRow));
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -786,35 +914,40 @@ app.post('/api/complex/bulk-adjustment', async (req, res) => {
 
 app.post('/api/:table', async (req, res) => {
     const { table } = req.params;
-    const item = req.body;
+    const { business_id } = req;
+    const item = { ...req.body, business_id };
+
     const columns = Object.keys(item);
     const placeholders = columns.map(() => '?').join(',');
     const values = columns.map(col => (item[col] && typeof item[col] === 'object') ? JSON.stringify(item[col]) : item[col]);
 
     try {
         const result = await dbRun(`INSERT INTO ${table} (${columns.join(',')}) VALUES (${placeholders})`, values);
-        console.log(`[API] Registro insertado en ${table}, ID:`, result.lastID);
         res.json({ id: result.lastID, ...item });
     } catch (err) {
-        console.error(`[API] Error al insertar en ${table}:`, err.message);
         res.status(500).json({ error: err.message });
     }
 });
 
 app.put('/api/:table/:id', async (req, res) => {
     const { table, id } = req.params;
+    const { business_id } = req;
     const item = req.body;
     const pk = table === 'settings' ? 'key' : 'id';
 
     if (item[pk]) delete item[pk];
+    if (item.business_id) delete item.business_id;
 
     const columns = Object.keys(item);
     const setClause = columns.map(col => `${col} = ?`).join(',');
     const values = columns.map(col => (item[col] && typeof item[col] === 'object') ? JSON.stringify(item[col]) : item[col]);
+
     values.push(id);
+    values.push(business_id);
 
     try {
-        await dbRun(`UPDATE ${table} SET ${setClause} WHERE ${pk} = ?`, values);
+        const result = await dbRun(`UPDATE ${table} SET ${setClause} WHERE ${pk} = ? AND business_id = ?`, values);
+        if (result.changes === 0) return res.status(403).json({ error: 'No tienes permiso o el registro no existe' });
         res.json({ id, ...item });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -823,9 +956,11 @@ app.put('/api/:table/:id', async (req, res) => {
 
 app.delete('/api/:table/:id', async (req, res) => {
     const { table, id } = req.params;
+    const { business_id } = req;
     const pk = table === 'settings' ? 'key' : 'id';
     try {
-        await dbRun(`DELETE FROM ${table} WHERE ${pk} = ?`, [id]);
+        const result = await dbRun(`DELETE FROM ${table} WHERE ${pk} = ? AND business_id = ?`, [id, business_id]);
+        if (result.changes === 0) return res.status(403).json({ error: 'No tienes permiso o el registro no existe' });
         res.json({ success: true });
     } catch (err) {
         res.status(500).json({ error: err.message });

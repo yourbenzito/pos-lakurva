@@ -1,6 +1,19 @@
 -- SQLite Schema for POS Minimarket
 -- This matches the IndexedDB structure for seamless migration
 
+CREATE TABLE IF NOT EXISTS businesses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    slug TEXT NOT NULL UNIQUE,
+    email TEXT,
+    phone TEXT,
+    address TEXT,
+    config JSON,
+    createdAt TEXT,
+    isActive INTEGER DEFAULT 1,
+    plan TEXT DEFAULT 'basic'
+);
+
 CREATE TABLE IF NOT EXISTS products (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     barcode TEXT,

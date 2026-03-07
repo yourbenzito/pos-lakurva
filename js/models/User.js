@@ -135,31 +135,48 @@ class User {
 
     static async authenticate(username, password) {
         try {
+            // Si estamos en modo SQLite (Servidor), usamos el nuevo endpoint de Auth
+            if (db.mode === 'sqlite' && window.ApiClient) {
+                console.log(`[Auth] Autenticando vía servidor para: ${username}`);
+                try {
+                    const result = await window.ApiClient.post('auth/login', { username, password });
+
+                    // Guardar datos de sesión
+                    localStorage.setItem('AUTH_TOKEN', result.token);
+                    localStorage.setItem('BUSINESS_ID', result.user.business_id);
+                    localStorage.setItem('CURRENT_BUSINESS', JSON.stringify(result.business));
+
+                    console.log(`[Auth] Login exitoso vía servidor.`);
+                    return result.user;
+                } catch (error) {
+                    console.warn('[Auth] Error en login de servidor:', error.message);
+                    return null;
+                }
+            }
+
+            // Fallback para IndexedDB (modo local/offline)
             const users = await db.getAll('users');
             const trimmedUsername = username.trim().toLowerCase();
             const user = users.find(u => {
                 if (!u || !u.username) return false;
-                // C8: Login insensitivo a minúsculas/mayúsculas para facilitad en celulares
                 return u.username.trim().toLowerCase() === trimmedUsername;
             });
 
             if (!user) {
-                console.log(`[Auth] Usuario no encontrado: ${username}`);
-                return null;
-            }
-
-            if (!user.password) {
-                console.error(`[Auth] Usuario encontrado pero sin contraseña: ${username}`);
+                console.log(`[Auth] Usuario no encontrado localmente: ${username}`);
                 return null;
             }
 
             const isValid = await this.verifyPassword(password, user.password);
             if (!isValid) {
-                console.log(`[Auth] Contraseña incorrecta para usuario: ${username}`);
+                console.log(`[Auth] Contraseña incorrecta localmente: ${username}`);
                 return null;
             }
 
-            console.log(`[Auth] Autenticación exitosa para usuario: ${username}`);
+            console.log(`[Auth] Autenticación local exitosa: ${username}`);
+            // En modo local, el business_id por defecto es 1
+            localStorage.setItem('BUSINESS_ID', user.business_id || 1);
+
             return user;
         } catch (error) {
             console.error('[Auth] Error en authenticate:', error);
