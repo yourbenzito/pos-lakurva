@@ -8,8 +8,8 @@ const ExpensesView = {
             <div class="view-header">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <h1>Gastos Operacionales</h1>
-                        <p>Registra y gestiona los gastos de tu negocio</p>
+                        <h1 style="color: #111827;">Gastos Operacionales</h1>
+                        <p style="color: #4b5563;">Registra y gestiona los gastos de tu negocio</p>
                     </div>
                     <button class="btn btn-primary" onclick="ExpensesView.showExpenseForm()">
                         ➕ Nuevo Gasto
@@ -17,22 +17,22 @@ const ExpensesView = {
                 </div>
             </div>
 
-            <div class="card">
-                <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
-                    <div class="form-group" style="flex: 1;">
-                        <label>Categoría</label>
-                        <select id="expenseCategoryFilter" class="form-control" onchange="ExpensesView.filterExpenses()">
+            <div class="card" style="background: #ffffff; border: 1px solid #d1d5db; border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+                <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; background: #f9fafb; padding: 1rem; border-radius: 0.75rem; border: 1px solid #e5e7eb;">
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label style="color: #374151; font-weight: 600; font-size: 0.85rem;">Categoría</label>
+                        <select id="expenseCategoryFilter" class="form-control" onchange="ExpensesView.filterExpenses()" style="background: #ffffff; color: #111827; border: 1.5px solid #d1d5db;">
                             <option value="all">Todas</option>
                             ${categories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
                         </select>
                     </div>
-                    <div class="form-group" style="flex: 1;">
-                        <label>Desde</label>
-                        <input type="date" id="expenseStartDateFilter" class="form-control" onchange="ExpensesView.filterExpenses()">
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label style="color: #374151; font-weight: 600; font-size: 0.85rem;">Desde</label>
+                        <input type="date" id="expenseStartDateFilter" class="form-control" onchange="ExpensesView.filterExpenses()" style="background: #ffffff; color: #111827; border: 1.5px solid #d1d5db;">
                     </div>
-                    <div class="form-group" style="flex: 1;">
-                        <label>Hasta</label>
-                        <input type="date" id="expenseEndDateFilter" class="form-control" onchange="ExpensesView.filterExpenses()">
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label style="color: #374151; font-weight: 600; font-size: 0.85rem;">Hasta</label>
+                        <input type="date" id="expenseEndDateFilter" class="form-control" onchange="ExpensesView.filterExpenses()" style="background: #ffffff; color: #111827; border: 1.5px solid #d1d5db;">
                     </div>
                     <div style="display: flex; align-items: flex-end;">
                         <button class="btn btn-secondary" onclick="ExpensesView.clearFilters()">Limpiar Filtros</button>
@@ -66,23 +66,23 @@ const ExpensesView = {
         }
 
         return `
-            <div class="stat-card" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.1)); border: 1px solid rgba(239, 68, 68, 0.3);">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">💸</div>
-                <h3 style="color: #fca5a5; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.25rem;">Total Gastos</h3>
-                <div class="value" style="color: #f87171; font-size: 2rem; font-weight: 800;">${formatCLP(summary.totalAmount)}</div>
+            <div style="background: #1e293b; border: 2px solid #ef4444; border-radius: 1rem; padding: 1.5rem; position: relative; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 20px rgba(239,68,68,0.25)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'">
+                <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">💸</div>
+                <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-bottom: 0.25rem;">Total Gastos</div>
+                <div style="color: #f87171; font-size: 1.9rem; font-weight: 800; line-height: 1;">${formatCLP(summary.totalAmount)}</div>
             </div>
             
-            <div class="stat-card" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.2), rgba(217, 119, 6, 0.1)); border: 1px solid rgba(245, 158, 11, 0.3);">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🔥</div>
-                <h3 style="color: #fcd34d; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.25rem;">Mayor Gasto</h3>
-                <div class="value" style="color: #fbbf24; font-size: 1.5rem; font-weight: 800;">${maxCategory}</div>
-                <div style="font-size: 0.9rem; color: #fde68a; margin-top: 0.25rem;">${formatCLP(maxAmount)}</div>
+            <div style="background: #1e293b; border: 2px solid #f59e0b; border-radius: 1rem; padding: 1.5rem; position: relative; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 20px rgba(245,158,11,0.25)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'">
+                <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">🔥</div>
+                <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-bottom: 0.25rem;">Mayor Gasto</div>
+                <div style="color: #fbbf24; font-size: 1.4rem; font-weight: 800; line-height: 1.2;">${maxCategory}</div>
+                <div style="font-size: 1rem; color: #fde68a; margin-top: 0.5rem; font-weight: 600;">${formatCLP(maxAmount)}</div>
             </div>
             
-            <div class="stat-card" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.1)); border: 1px solid rgba(59, 130, 246, 0.3);">
-                <div style="font-size: 2rem; margin-bottom: 0.5rem;">📊</div>
-                <h3 style="color: #93c5fd; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.25rem;">Frecuencia</h3>
-                <div class="value" style="color: #60a5fa; font-size: 1.5rem; font-weight: 800;">${Object.keys(summary.summaryByCategory).length} Categorías</div>
+            <div style="background: #1e293b; border: 2px solid #3b82f6; border-radius: 1rem; padding: 1.5rem; position: relative; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 20px rgba(59,130,246,0.25)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'">
+                <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">📊</div>
+                <div style="font-size: 0.75rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 700; margin-bottom: 0.25rem;">Frecuencia</div>
+                <div style="color: #60a5fa; font-size: 1.6rem; font-weight: 800; line-height: 1;">${Object.keys(summary.summaryByCategory).length} Categorías</div>
             </div>
         `;
     },
@@ -109,71 +109,48 @@ const ExpensesView = {
         };
 
         return `
-            <div style="position: relative; max-width: 800px; margin: 0 auto; padding: 1rem 0;">
-                <!-- Línea vertical del timeline -->
-                <div style="position: absolute; left: 40px; top: 0; bottom: 0; width: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; z-index: 0;"></div>
-                
-                <div style="display: flex; flex-direction: column; gap: 1.5rem; position: relative; z-index: 1;">
-                    ${expenses.map((e, i) => {
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                ${expenses.map((e, i) => {
             const catLower = (e.category || 'otros').toLowerCase();
             const icon = categoryIcons[catLower] || '💸';
             const color = categoryColors[catLower] || '#94a3b8';
             const methodIcon = e.paymentMethod === 'cash' ? '💵' : e.paymentMethod === 'card' ? '💳' : e.paymentMethod === 'qr' ? '📱' : '➕';
 
             return `
-                        <div style="display: flex; gap: 1.5rem; align-items: flex-start; transition: transform 0.2s;" onmouseover="this.style.transform='translateX(8px)'" onmouseout="this.style.transform='translateX(0)'">
-                            <!-- Círculo del timeline -->
-                            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.5rem; min-width: 80px; text-align: center;">
-                                <div style="width: 48px; height: 48px; border-radius: 50%; background: ${color}22; border: 2px solid ${color}; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: bold; box-shadow: 0 0 15px ${color}44;">
-                                    ${icon}
+                    <div style="background: #ffffff; border: 1.5px solid #e5e7eb; border-left: 5px solid ${color}; border-radius: 0.875rem; padding: 1.25rem; display: flex; gap: 1.25rem; align-items: flex-start; transition: box-shadow 0.2s, border-color 0.2s;" onmouseover="this.style.boxShadow='0 6px 18px rgba(0,0,0,0.09)';this.style.borderColor='${color}'" onmouseout="this.style.boxShadow='none';this.style.borderLeftColor='${color}';this.style.borderTopColor='#e5e7eb';this.style.borderRightColor='#e5e7eb';this.style.borderBottomColor='#e5e7eb'">
+                        <!-- Ícono de categoría -->
+                        <div style="width: 52px; height: 52px; min-width: 52px; border-radius: 50%; background: ${color}18; border: 2px solid ${color}; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+                            ${icon}
+                        </div>
+
+                        <!-- Contenido principal -->
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.5rem;">
+                                <div>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+                                        <span style="background: ${color}18; color: ${color}; padding: 0.15rem 0.6rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; border: 1px solid ${color}44;">${e.category}</span>
+                                        <span style="color: #6b7280; font-size: 0.8rem;">${methodIcon} ${(this.getPaymentMethodName(e.paymentMethod) || '').replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '').trim()}</span>
+                                    </div>
+                                    <h3 style="margin: 0 0 0.2rem 0; font-size: 1.05rem; color: #111827; font-weight: 700;">${e.description}</h3>
+                                    ${e.notes ? `<p style="margin: 0; font-size: 0.82rem; color: #6b7280; font-style: italic;">📝 ${e.notes}</p>` : ''}
+                                    <div style="font-size: 0.75rem; color: #9ca3af; margin-top: 0.35rem;">${e.date ? new Date(e.date).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' }) : ''} ${e.date ? new Date(e.date).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) : ''}</div>
                                 </div>
-                                <div style="font-size: 0.75rem; color: var(--secondary); font-weight: 600;">
-                                    ${e.date ? new Date(e.date).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }) : ''}
-                                </div>
-                                <div style="font-size: 0.75rem; color: var(--secondary); font-weight: 500;">
-                                    ${e.date ? new Date(e.date).toLocaleDateString('es-CL', { day: '2-digit', month: 'short' }) : ''}
+                                <div style="text-align: right;">
+                                    <div style="font-size: 1.6rem; font-weight: 800; color: #dc2626; white-space: nowrap;">-${formatCLP(e.amount)}</div>
                                 </div>
                             </div>
-
-                            <!-- Tarjeta de Gasto -->
-                            <div style="flex: 1; background: rgba(17, 24, 39, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 1.25rem; position: relative; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
-                                    
-                                    <div style="flex: 1; min-width: 200px;">
-                                        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
-                                            <span style="background: ${color}22; color: ${color}; px; padding: 0.2rem 0.6rem; border-radius: 1rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase;">
-                                                ${e.category}
-                                            </span>
-                                            <span style="color: var(--secondary); font-size: 0.8rem; display: flex; align-items: center; gap: 0.25rem;">
-                                                ${methodIcon} ${this.getPaymentMethodName(e.paymentMethod).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, '').trim()}
-                                            </span>
-                                        </div>
-                                        <h3 style="margin: 0 0 0.25rem 0; font-size: 1.15rem; color: #f8fafc;">${e.description}</h3>
-                                        ${e.notes ? `<p style="margin: 0; font-size: 0.85rem; color: #94a3b8; font-style: italic;">📝 ${e.notes}</p>` : ''}
-                                    </div>
-
-                                    <div style="text-align: right;">
-                                        <div style="font-size: 1.5rem; font-weight: 800; color: #f87171; letter-spacing: -0.5px; display: flex; align-items: center; gap: 0.25rem;">
-                                            <span style="font-size: 1rem; opacity: 0.7;">-</span>${formatCLP(e.amount)}
-                                        </div>
-                                    </div>
-
-                                </div>
-
-                                <!-- Botones de acción flotantes en la esquina inferior derecha -->
-                                <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.05);">
-                                    <button class="btn btn-sm" style="background: rgba(255,255,255,0.1); color: #fff; padding: 0.3rem 0.75rem;" onclick="ExpensesView.showExpenseForm(${e.id})" title="Editar gasto">
-                                        ✏️ Editar
-                                    </button>
-                                    <button class="btn btn-sm" style="background: rgba(239, 68, 68, 0.2); color: #f87171; padding: 0.3rem 0.75rem;" onclick="ExpensesView.deleteExpense(${e.id})" title="Eliminar gasto">
-                                        🗑️ Eliminar
-                                    </button>
-                                </div>
+                            <div style="display: flex; gap: 0.5rem; justify-content: flex-end; padding-top: 0.75rem; border-top: 1px solid #f3f4f6;">
+                                <button class="btn btn-sm" style="background: #f9fafb; color: #374151; border: 1px solid #d1d5db; padding: 0.3rem 0.75rem; font-weight: 600; transition: background 0.2s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f9fafb'" onclick="ExpensesView.showExpenseForm(${e.id})">
+                                    ✏️ Editar
+                                </button>
+                                <button class="btn btn-sm" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; padding: 0.3rem 0.75rem; font-weight: 600; transition: background 0.2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'" onclick="ExpensesView.deleteExpense(${e.id})">
+                                    🗑️ Eliminar
+                                </button>
                             </div>
                         </div>
-                        `;
+                    </div>
+                    `;
         }).join('')}
-                </div>
             </div>
         `;
     },

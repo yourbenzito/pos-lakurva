@@ -201,29 +201,43 @@ const PurchasesView = {
         const iva = (docType === 'factura') ? Math.round(subtotalNeto * 0.19) : 0;
         return Math.round(subtotalNeto + iva);
     },
-
     async render() {
-        const purchases = await Purchase.getAll();
+        // C6: Optimización - Carga rápida inicial limitada a 50 registros
+        const purchases = await Purchase.getLatest(50);
 
         let accountsPayable = 0;
+        let currentMonthTotal = 0;
+        let totalPurchasesCount = 0;
+        let totalPendingCount = 0;
+
         try {
-            // C6: Usar sumario eficiente en lugar de bucle individual por proveedor
-            const summary = await SupplierPaymentService.getAccountsPayableSummary();
-            accountsPayable = summary.reduce((sum, item) => sum + item.totalDebt, 0);
-        } catch (_) {
-            accountsPayable = await Purchase.getAccountsPayable();
+            // C6: Usar sumario eficiente del servidor
+            const stats = await Purchase.getStatsSummary();
+            if (stats) {
+                accountsPayable = stats.summary.totalDebt;
+                currentMonthTotal = stats.summary.monthTotal;
+                totalPurchasesCount = stats.summary.totalCount;
+                totalPendingCount = stats.summary.pendingCount;
+            } else {
+                // Fallback IndexedDB
+                const summary = await SupplierPaymentService.getAccountsPayableSummary();
+                accountsPayable = summary.reduce((sum, item) => sum + item.totalDebt, 0);
+                
+                const now = new Date();
+                const all = await Purchase.getAll();
+                currentMonthTotal = all.reduce((sum, purchase) => {
+                    const dateValue = purchase.date ? new Date(purchase.date) : null;
+                    if (dateValue && dateValue.getMonth() === now.getMonth() && dateValue.getFullYear() === now.getFullYear()) {
+                        return sum + (parseFloat(purchase.total) || 0);
+                    }
+                    return sum;
+                }, 0);
+                totalPurchasesCount = all.length;
+                totalPendingCount = all.filter(p => p.status === 'pending').length;
+            }
+        } catch (error) {
+            console.warn('Error cargando estadísticas de compras:', error);
         }
-        const now = new Date();
-        const currentMonthTotal = purchases.reduce((sum, purchase) => {
-            const dateValue = purchase.date ? new Date(purchase.date) : null;
-            if (!dateValue || Number.isNaN(dateValue.getTime())) {
-                return sum;
-            }
-            if (dateValue.getFullYear() === now.getFullYear() && dateValue.getMonth() === now.getMonth()) {
-                return sum + (parseFloat(purchase.total) || 0);
-            }
-            return sum;
-        }, 0);
 
         return `
             <div class="view-header">
@@ -237,11 +251,11 @@ const PurchasesView = {
                             💰 Pozo IVA
                         </button>
                         ${this.getDraft() ? `
-                        <div style="display: flex; gap: 0.5rem;">
-                            <button class="btn" onclick="PurchasesView.restoreDraft()" style="background: #f59e0b; color: #000; font-weight: bold; border: none; box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);">
+                        <div style="display: flex; gap: 0.75rem;">
+                            <button class="btn" onclick="PurchasesView.restoreDraft()" style="background: var(--warning); color: #000; font-weight: 800; border: none; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);">
                                 📦 Continuar Compra
                             </button>
-                            <button class="btn" onclick="if(confirm('¿Seguro que quieres borrar la compra pausada?')) { PurchasesView.clearDraft(); PurchasesView.switchSection('list'); }" style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3);">
+                            <button class="btn btn-outline-danger" onclick="if(confirm('¿Seguro que quieres borrar la compra pausada?')) { PurchasesView.clearDraft(); PurchasesView.switchSection('list'); }" style="font-weight: 700;">
                                 🗑️ Cancelar Borrador
                             </button>
                         </div>
@@ -257,7 +271,7 @@ const PurchasesView = {
             <div class="grid grid-3">
                 <div class="stat-card">
                     <h3>Total Compras</h3>
-                    <div class="value">${purchases.length}</div>
+                    <div class="value">${totalPurchasesCount}</div>
                 </div>
                 <div class="stat-card">
                     <h3>Total del Mes</h3>
@@ -269,8 +283,12 @@ const PurchasesView = {
                 </div>
                 <div class="stat-card">
                     <h3>Compras Pendientes</h3>
-                    <div class="value">${purchases.filter(p => p.status === 'pending').length}</div>
+                    <div class="value">${totalPendingCount}</div>
                 </div>
+            </div>
+
+            <div id="accountsPayableSummary" style="margin-bottom: 2rem;">
+                <!-- Se llenará dinámicamente -->
             </div>
             
             <div class="card" style="margin-bottom: 1.5rem;">
@@ -353,12 +371,12 @@ const PurchasesView = {
         const statusText = isPaid ? 'Pagado' : 'Pendiente';
 
         return `
-            <div style="background: rgba(17, 24, 39, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; position: relative; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)';" onmouseout="this.style.transform='translateY(0)';">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.75rem;">
+            <div class="white-panel" style="display: flex; flex-direction: column; gap: 1rem; position: relative; transition: all 0.2s; border: 1px solid var(--border); box-shadow: var(--shadow-md);" onmouseover="this.style.transform='translateY(-4px)'; this.style.borderColor='var(--primary)';" onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='var(--border)';">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
                     <div>
-                        <div style="font-size: 0.8rem; color: var(--secondary); margin-bottom: 0.25rem;">${formatDate(p.date)}</div>
-                        <h3 class="supplier-name-placeholder" data-supplier-id="${p.supplierId}" id="supplier-${p.id}" style="margin: 0; font-size: 1.1rem; color: #fff;">Cargando...</h3>
-                        ${p.invoiceNumber ? `<div style="font-size: 0.85rem; color: #93c5fd; margin-top: 0.25rem;">📄 Factura Nº: ${p.invoiceNumber}</div>` : ''}
+                        <div style="font-size: 0.8rem; color: var(--secondary); margin-bottom: 0.25rem; font-weight: 700;">${formatDate(p.date)}</div>
+                        <h3 class="supplier-name-placeholder" data-supplier-id="${p.supplierId}" id="supplier-${p.id}" style="margin: 0; font-size: 1.1rem; color: var(--text-main); font-weight: 800;">Cargando...</h3>
+                        ${p.invoiceNumber ? `<div style="font-size: 0.85rem; color: var(--primary); font-weight: 600; margin-top: 0.25rem;">📄 Factura Nº: ${p.invoiceNumber}</div>` : ''}
                     </div>
                     <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;">
                         <span style="background: ${isPaid ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}; 
@@ -378,26 +396,27 @@ const PurchasesView = {
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; text-align: center; background: rgba(0,0,0,0.3); border-radius: 0.75rem; padding: 1rem; border: 1px solid rgba(255,255,255,0.05);">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem; text-align: center; background: #f8fafc; border-radius: 0.75rem; padding: 1rem; border: 1px solid var(--border);">
                     <div style="display: flex; flex-direction: column; justify-content: center;">
-                        <div style="font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Total Compra</div>
-                        <div style="font-weight: 900; color: #fff; font-size: 1.4rem; line-height: 1;">${formatCLP(p.total)}</div>
+                        <div style="font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Total Compra</div>
+                        <div style="font-weight: 900; color: var(--text-main); font-size: 1.4rem; line-height: 1;">${formatCLP(p.total)}</div>
                     </div>
-                    <div style="border-left: 1px solid rgba(255,255,255,0.1); border-right: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; justify-content: center;">
-                        <div style="font-size: 0.65rem; color: #34d399; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Pagado</div>
-                        <div style="font-weight: 900; color: #34d399; font-size: 1.4rem; line-height: 1;">${formatCLP(p.paidAmount)}</div>
+                    <div style="border-left: 1px solid var(--border); border-right: 1px solid var(--border); display: flex; flex-direction: column; justify-content: center;">
+                        <div style="font-size: 0.65rem; color: var(--success); text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Pagado</div>
+                        <div style="font-weight: 900; color: #059669; font-size: 1.4rem; line-height: 1;">${formatCLP(p.paidAmount)}</div>
+                        ${parseFloat(p.paidAmount) > 0 ? `<div style="font-size: 0.65rem; color: var(--primary); font-weight: 700; cursor: pointer; margin-top: 0.3rem; text-decoration: underline;" onclick="event.stopPropagation(); PurchasesView.viewPurchase(${p.id})">🔍 Ver pagos</div>` : ''}
                     </div>
                     <div style="display: flex; flex-direction: column; justify-content: center;">
-                        <div style="font-size: 0.65rem; color: #f87171; text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Por Pagar</div>
-                        <div style="font-weight: 900; color: #f87171; font-size: 1.4rem; line-height: 1;">${formatCLP(balance)}</div>
+                        <div style="font-size: 0.65rem; color: var(--danger); text-transform: uppercase; font-weight: 800; letter-spacing: 0.5px; margin-bottom: 0.25rem;">Por Pagar</div>
+                        <div style="font-weight: 900; color: #dc2626; font-size: 1.4rem; line-height: 1;">${formatCLP(balance)}</div>
                     </div>
                 </div>
 
                 <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: auto;">
-                    <button class="btn btn-sm" style="background: rgba(255,255,255,0.1); color: #fff; flex: 1;" onclick="PurchasesView.viewPurchase(${p.id})">👁️ Ver</button>
-                    ${PermissionService.can('purchases.edit') ? `<button class="btn btn-sm" style="background: rgba(59, 130, 246, 0.2); color: #60a5fa; flex: 1;" onclick="PurchasesView.editPurchase(${p.id})">✏️ Editar</button>` : ''}
-                    ${!isPaid && PermissionService.can('purchases.pay') ? `<button class="btn btn-sm" style="background: rgba(16, 185, 129, 0.2); color: #34d399; flex: 1;" onclick="PurchasesView.showPaymentForm(${p.id})">💰 Pagar</button>` : ''}
-                    ${PermissionService.can('purchases.delete') ? `<button class="btn btn-sm" style="background: rgba(239, 68, 68, 0.2); color: #fca5a5; flex: 1;" onclick="PurchasesView.deletePurchase(${p.id})">🗑️ Eliminar</button>` : ''}
+                    <button class="btn btn-sm btn-secondary" onclick="PurchasesView.viewPurchase(${p.id})">👁️ Ver</button>
+                    ${PermissionService.can('purchases.edit') ? `<button class="btn btn-sm btn-outline-primary" style="flex: 1;" onclick="PurchasesView.editPurchase(${p.id})">✏️ Editar</button>` : ''}
+                    ${!isPaid && PermissionService.can('purchases.pay') ? `<button class="btn btn-sm btn-success" style="flex: 1;" onclick="PurchasesView.showPaymentForm(${p.id})">💰 Pagar</button>` : ''}
+                    ${PermissionService.can('purchases.delete') ? `<button class="btn btn-sm btn-outline-danger" style="flex: 1;" onclick="PurchasesView.deletePurchase(${p.id})">🗑️ Eliminar</button>` : ''}
                 </div>
             </div>
         `;
@@ -412,23 +431,23 @@ const PurchasesView = {
 
         return `
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem;">
-                <h2 style="margin: 0; font-weight: 900; letter-spacing: -0.5px; color: #fff; font-size: 1.75rem;">Compras por día</h2>
+                <h2 style="margin: 0; font-weight: 900; letter-spacing: -0.5px; color: var(--text-main); font-size: 1.75rem;">Compras por día</h2>
                 <button class="btn btn-primary" onclick="PurchasesView.goToToday()" style="padding: 0.6rem 1.25rem; font-weight: 900; background: linear-gradient(135deg, var(--primary), #4338ca); border: none; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3); border-radius: 0.75rem;">📅 HOY</button>
             </div>
 
-            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2.5rem; flex-wrap: wrap; background: rgba(30, 41, 59, 0.3); padding: 1.5rem; border-radius: 1.25rem; border: 1px solid rgba(255,255,255,0.05); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2);">
-                <button class="btn" onclick="PurchasesView.changeDay(-1)" style="width: 3.5rem; height: 3.5rem; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; color: #fff; font-size: 1.25rem; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 2.5rem; flex-wrap: wrap; background: #ffffff; padding: 1.5rem; border-radius: 1.25rem; border: 2px solid var(--border); box-shadow: var(--shadow-md);">
+                <button class="btn btn-secondary" onclick="PurchasesView.changeDay(-1)" style="width: 3.5rem; height: 3.5rem; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
                     ◀
                 </button>
                 
-                <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 0.5rem; background: rgba(0,0,0,0.2); padding: 0.5rem 1.25rem; border-radius: 1rem; border: 1px solid rgba(255,255,255,0.05);">
-                    <span style="font-size: 0.7rem; color: #94a3b8; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Fecha de consulta</span>
+                <div style="flex: 1; min-width: 250px; display: flex; flex-direction: column; gap: 0.25rem; padding-left: 0.5rem;">
+                    <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Fecha de consulta</span>
                     <input type="date" id="dailyDatePicker" class="form-control" value="${dateKey}" 
-                           style="background: transparent; border: none; color: #fff; font-weight: 900; font-size: 1.25rem; padding: 0; height: auto;"
+                           style="background: transparent; border: none; color: var(--text-main); font-weight: 900; font-size: 1.5rem; padding: 0; height: auto;"
                            onchange="PurchasesView.setDailyDateAndRefresh(this.value)">
                 </div>
 
-                <button class="btn" onclick="PurchasesView.changeDay(1)" style="width: 3.5rem; height: 3.5rem; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 1rem; color: #fff; font-size: 1.25rem; transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">
+                <button class="btn btn-secondary" onclick="PurchasesView.changeDay(1)" style="width: 3.5rem; height: 3.5rem; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
                     ▶
                 </button>
             </div>
@@ -441,14 +460,14 @@ const PurchasesView = {
                    </div>`
                 : `
             <div style="margin-bottom: 1.5rem;">
-                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; background: linear-gradient(to right, rgba(59, 130, 246, 0.1), transparent); border-radius: 1.25rem; border: 1px solid rgba(59, 130, 246, 0.2); margin-bottom: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1.5rem 2rem; background: #ffffff; border-radius: 1.25rem; border: 2px solid var(--border); margin-bottom: 2rem; box-shadow: var(--shadow-sm);">
                     <div>
-                        <div style="font-size: 0.75rem; color: #60a5fa; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.25rem;">Resumen del Día</div>
-                        <strong style="color: #fff; font-size: 1.1rem; text-transform: capitalize;">📅 ${dateLabel}</strong>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.25rem;">Resumen del Día</div>
+                        <strong style="color: var(--text-main); font-size: 1.25rem; text-transform: capitalize;">📅 ${dateLabel}</strong>
                     </div>
                     <div style="text-align: right;">
-                        <span style="color: #94a3b8; font-size: 0.95rem;"><strong>${dayPurchases.length}</strong> compras encontradas</span>
-                        <div style="color: #60a5fa; font-size: 1.75rem; font-weight: 900; margin-top: 0.25rem;">${formatCLP(dayTotal)}</div>
+                        <span style="color: var(--text-muted); font-size: 1rem; font-weight: 600;"><strong>${dayPurchases.length}</strong> compras encontradas</span>
+                        <div style="color: var(--primary); font-size: 2rem; font-weight: 900; margin-top: 0.25rem;">${formatCLP(dayTotal)}</div>
                     </div>
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 1.5rem;">
@@ -591,9 +610,18 @@ const PurchasesView = {
         if (purchases.length === 0) {
             return '<div class="empty-state"><div class="empty-state-icon">📋</div>No hay compras registradas</div>';
         }
+
+        // C6: Optimización - Solo mostrar las últimas 40 compras por defecto en el listado general
+        // para evitar que el navegador se vuelva lento con miles de registros.
+        const sortedPurchases = [...purchases].sort((a, b) => new Date(b.date) - new Date(a.date));
+        const limitedPurchases = sortedPurchases.slice(0, 40);
+
         return `
+            <div style="margin-bottom: 1rem; color: var(--secondary); font-size: 0.85rem;">
+                Mostrando las últimas ${limitedPurchases.length} compras de un total de ${purchases.length}.
+            </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 1.5rem;">
-                ${purchases.map(p => this.renderPurchaseRow(p)).join('')}
+                ${limitedPurchases.map(p => this.renderPurchaseRow(p)).join('')}
             </div>
         `;
     },
@@ -612,6 +640,58 @@ const PurchasesView = {
                 elem.textContent = 'Proveedor #' + sid;
             }
         });
+
+        // C6: Renderizar resumen de cuentas por pagar
+        await this.renderAccountsPayableSummary();
+    },
+
+    async renderAccountsPayableSummary() {
+        const container = document.getElementById('accountsPayableSummary');
+        if (!container) {
+            console.warn('C6: Contenedor accountsPayableSummary no encontrado en el DOM');
+            return;
+        }
+
+        try {
+            console.log('C6: Iniciando renderAccountsPayableSummary...');
+            const summary = await SupplierPaymentService.getAccountsPayableSummary();
+            const activeDebts = summary.filter(s => s.totalDebt > 0.01);
+            console.log(`C6: Deudas activas encontradas: ${activeDebts.length}`);
+
+            if (activeDebts.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+
+        container.innerHTML = `
+            <div class="card" style="border: 2px solid var(--danger); background: #fff1f2;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid rgba(239, 68, 68, 0.1);">
+                    <h3 style="margin: 0; color: #991b1b; display: flex; align-items: center; gap: 0.75rem; font-weight: 800; font-size: 1.25rem;">
+                        <span style="font-size: 1.5rem;">🚩</span> Cuentas por Pagar (${activeDebts.length} proveedores)
+                    </h3>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.25rem;">
+                    ${activeDebts.map(d => `
+                        <div style="background: #334155; border: 2px solid #475569; padding: 1.25rem; border-radius: 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: var(--shadow-md);">
+                            <div style="flex: 1;">
+                                <div style="font-weight: 800; color: #ffffff; font-size: 1.1rem; margin-bottom: 0.25rem;">${d.supplier.name}</div>
+                                <div style="font-size: 0.85rem; color: #cbd5e1; font-weight: 600;">${d.purchaseCount || 0} facturas pendientes</div>
+                            </div>
+                            <div style="text-align: right; min-width: 110px;">
+                                <div style="color: #fca5a5; font-weight: 900; font-size: 1.25rem; margin-bottom: 0.5rem;">${formatCLP(d.totalDebt)}</div>
+                                <button class="btn btn-sm btn-success" style="width: 100%; height: 32px; font-weight: 700;" 
+                                        onclick="SuppliersView.showSupplierPaymentForm(${d.supplier.id})">
+                                    💰 Pagar
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+        } catch (error) {
+            console.error('C6: Error rendering accounts payable summary:', error);
+        }
     },
 
     purchaseItems: [],
@@ -1945,11 +2025,6 @@ const PurchasesView = {
                 supplierId: purchase.supplierId,
                 purchaseId: id,
                 amount: amount,
-                // ─── Compras ───
-                'purchases.create': ['owner', 'admin'],
-                'purchases.edit': ['owner', 'admin'],
-                'purchases.pay': ['owner', 'admin'],
-                'purchases.delete': ['owner', 'admin'],
                 method: method,
                 reference: reference,
                 notes: notes,

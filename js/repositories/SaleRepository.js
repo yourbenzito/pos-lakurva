@@ -154,8 +154,9 @@ class SaleRepository extends BaseRepository {
      */
     async findLast() {
         const sales = await this.findAll();
+        if (!sales || sales.length === 0) return null;
         const sorted = sales.sort((a, b) => new Date(b.date) - new Date(a.date));
-        return sorted.length > 0 ? sorted[0] : null;
+        return sorted[0];
     }
 
     /**

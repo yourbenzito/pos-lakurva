@@ -32,11 +32,11 @@ class StockMovementRepository extends BaseRepository {
      * @returns {Promise<Array>}
      */
     async findByDateRange(startDate, endDate) {
-        const movements = await this.findAll();
-        return movements.filter(m => {
-            const mDate = new Date(m.date);
-            return mDate >= new Date(startDate) && mDate <= new Date(endDate);
-        });
+        const start = new Date(startDate).toISOString();
+        const end = new Date(endDate).toISOString();
+        const movements = await this.findByIndexRange('date', start, end);
+        if (!movements) return [];
+        return movements.sort((a, b) => new Date(b.date) - new Date(a.date));
     }
 
     /**
@@ -45,6 +45,7 @@ class StockMovementRepository extends BaseRepository {
      */
     async findAll() {
         const movements = await super.findAll();
+        if (!movements) return [];
         return movements.sort((a, b) => new Date(b.date) - new Date(a.date));
     }
 }

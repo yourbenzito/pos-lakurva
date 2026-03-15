@@ -121,7 +121,7 @@ js/
 
 ## Mejoras de auditoría (v1.2.0)
 
-Implementación de las 8 correcciones derivadas de la auditoría del sistema (ver [CHANGELOG.md](CHANGELOG.md)).
+Implementación de las 8 correcciones derivadas de la auditoría del sistema (ver [historial_cambios.md](historial_cambios.md)).
 
 | # | Área | Cambio técnico |
 |---|------|----------------|

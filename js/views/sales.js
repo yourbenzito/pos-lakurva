@@ -4,12 +4,19 @@ const SalesView = {
     dateTo: null, // Fecha hasta (YYYY-MM-DD)
 
     async render() {
-        const sales = await Sale.getAll();
-        const sortedSales = sales.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-        // Obtener fecha por defecto (hoy, o la fecha seleccionada si existe)
+        // C4: Optimización — Por defecto mostrar solo hoy para evitar descargar miles de registros
         const today = new Date();
-        const defaultDate = this.dateFrom || this.dateTo || this.getLocalDateString(today);
+        const todayStr = this.getLocalDateString(today);
+        
+        // Mantener filtros si ya fueron seleccionados, si no, usar hoy
+        const defaultDate = this.dateFrom || this.dateTo || todayStr;
+        if (!this.dateFrom && !this.dateTo) {
+            this.dateFrom = todayStr;
+            this.dateTo = todayStr;
+        }
+
+        const sales = await Sale.getByDateRange(this.dateFrom + 'T00:00:00', this.dateTo + 'T23:59:59');
+        const sortedSales = Array.isArray(sales) ? sales.sort((a, b) => new Date(b.date) - new Date(a.date)) : [];
 
         const salesTableHtml = await this.renderSalesTable(sortedSales);
 
@@ -336,31 +343,9 @@ const SalesView = {
         const order = ['cash', 'card', 'qr', 'other', 'pending', 'mixed'];
         const methodsToShow = filterMethods || order;
 
-        // Calcular total general sumando solo montos realmente pagados (no totales de venta)
-        // Para optimizar, primero intentamos usar paidAmount, y solo si no está disponible o es parcial, consultamos Payment records
-        let grandTotal = 0;
-        const grandTotalPromises = sales.map(async (sale) => {
-            // Si la venta está completada y tiene paidAmount igual al total, usar directamente
-            if (sale.status === 'completed' && parseFloat(sale.paidAmount || sale.total) >= parseFloat(sale.total)) {
-                return parseFloat(sale.total) || 0;
-            }
-
-            // Para ventas parciales o pendientes, consultar Payment records
-            try {
-                const payments = await Payment.getBySale(sale.id);
-                if (payments.length > 0) {
-                    return payments.reduce((sum, p) => sum + (parseFloat(p.amount) || 0), 0);
-                }
-            } catch (error) {
-                console.error(`Error obteniendo pagos para venta ${sale.id}:`, error);
-            }
-
-            // Fallback: usar paidAmount o total
-            return parseFloat(sale.paidAmount) || parseFloat(sale.total) || 0;
-        });
-
-        const grandTotalValues = await Promise.all(grandTotalPromises);
-        grandTotal = grandTotalValues.reduce((sum, val) => sum + val, 0);
+        // Calcular total general sumando solo montos realmente pagados
+        // C4: Optimización — Usar paidAmount directamente en vez de hacer 100 llamadas a Payment.getBySale
+        const grandTotal = sales.reduce((sum, sale) => sum + (parseFloat(sale.paidAmount) || 0), 0);
         const grandCount = sales.length;
 
         let dateText = '';

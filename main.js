@@ -85,6 +85,7 @@ async function createWindow() {
     console.log('[Electron] Fallback: cargando index.html local');
     mainWindow.loadFile("index.html");
   }
+  return mainWindow;
 }
 
 const BACKUP_MAX_FILES = 30; // Mantener últimos 30 backups
@@ -159,7 +160,11 @@ app.whenReady().then(async () => {
       console.warn("No se pudo crear directorios de caché:", e.message);
     }
 
-    createWindow();
+    const win = await createWindow();
+    if (win) {
+      await win.webContents.session.clearCache();
+      console.log('[Electron] Caché limpiada para desarrollo.');
+    }
   } catch (error) {
     console.error("❌ Fatal error during startup:", error);
     app.quit();

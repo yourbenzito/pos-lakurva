@@ -2,14 +2,15 @@ const ReportsView = {
     currentReport: 'daily',
 
     async render() {
+        this.destroy(); // Limpiar antes de renderizar
         return `
             <div class="view-header">
-                <h1>Reportes</h1>
-                <p>Análisis y estadísticas del negocio</p>
+                <h1 style="color: #111827;">Reportes</h1>
+                <p style="color: #4b5563;">Análisis y estadísticas del negocio</p>
             </div>
             
-            <div class="card glass-panel pos-panel">
-                <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+            <div class="card" style="background: #ffffff; border: 1.5px solid #d1d5db; border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+                <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; background: #f9fafb; padding: 0.875rem; border-radius: 0.75rem; border: 1px solid #e5e7eb;">
                     <button class="btn ${this.currentReport === 'daily' ? 'btn-primary' : 'btn-secondary'}" 
                             onclick="ReportsView.showReport('daily')">
                         📅 Ventas del Día
@@ -48,7 +49,7 @@ const ReportsView = {
                     </button>
                 </div>
                 
-                <div id="reportContent" class="pos-section">
+                <div id="reportContent">
                     ${await this.renderDailyReport()}
                 </div>
             </div>
@@ -56,6 +57,11 @@ const ReportsView = {
     },
 
     async showReport(type, ...args) {
+        if (this.activeCharts) {
+            this.activeCharts.forEach(c => { try { c.destroy(); } catch (e) { } });
+            this.activeCharts = [];
+        }
+
         this.currentReport = type;
 
         let content = '';
@@ -316,9 +322,13 @@ const ReportsView = {
         const currentYear = selectedYear !== undefined ? selectedYear : now.getFullYear();
         const currentMonth = selectedMonth !== undefined ? selectedMonth : now.getMonth();
 
-        const allSales = await Sale.getAll();
+        // C4: Optimización — No descargar miles de ventas para saber qué meses tienen ventas
+        // En su lugar, asumimos el año actual y el anterior como válidos, o mejor, consultamos solo el rango necesario
         const monthsWithSales = new Set();
-        allSales.forEach(sale => {
+        const startHistory = new Date(currentYear - 1, 0, 1); // Último año
+        const recentSales = await Sale.getByDateRange(startHistory.toISOString(), now.toISOString());
+
+        recentSales.forEach(sale => {
             const saleDate = new Date(sale.date);
             monthsWithSales.add(`${saleDate.getFullYear()}-${saleDate.getMonth()}`);
         });
@@ -1105,7 +1115,10 @@ const ReportsView = {
         try {
             if (typeof Chart === 'undefined') throw new Error('Chart.js no cargado');
 
-            new Chart(canvas, {
+            // Prevenir Memory Leak: Destruir gráfico anterior si existe en la vista
+            if (!this.activeCharts) this.activeCharts = [];
+
+            const chart = new Chart(canvas, {
                 type: 'bar',
                 data: {
                     labels: labels,
@@ -1163,6 +1176,9 @@ const ReportsView = {
                     }
                 }]
             });
+
+            this.activeCharts.push(chart);
+
         } catch (e) {
             console.error('Error rendering chart:', e);
             canvas.parentElement.innerHTML = `<div style="text-align:center; color: #ef4444; padding: 1rem;">Error visual: ${e.message}</div>`;
@@ -1236,24 +1252,36 @@ const ReportsView = {
     async updatePayment(saleId) {
         const sale = await Sale.getById(saleId);
         const content = `
-    < div style = "margin-bottom: 1rem;" >
-        <p>Venta #${sale.saleNumber} - Total: ${formatCLP(sale.total)}</p>
-            </div >
-    <div class="form-group">
-        <label>Nuevo Método de Pago</label>
-        <select id="newPaymentMethod" class="form-control">
-            <option value="cash" ${sale.paymentMethod === 'cash' ? 'selected' : ''}>Efectivo</option>
-            <option value="card" ${sale.paymentMethod === 'card' ? 'selected' : ''}>Tarjeta</option>
-            <option value="qr" ${sale.paymentMethod === 'qr' ? 'selected' : ''}>QR</option>
-            <option value="other" ${sale.paymentMethod === 'other' ? 'selected' : ''}>Otro</option>
-        </select>
-    </div>
-`;
+            <div class="modern-modal-info">
+                <div class="info-icon">📒</div>
+                <div class="info-content">
+                    <h3>Venta #${sale.saleNumber}</h3>
+                    <p>Total a Corregir: <strong>${formatCLP(sale.total)}</strong></p>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 2rem;">
+                <label class="form-label">Seleccionar Nuevo Método de Pago</label>
+                <div class="custom-select-wrapper">
+                    <select id="newPaymentMethod" class="form-control premium-select">
+                        <option value="cash" ${sale.paymentMethod === 'cash' ? 'selected' : ''}>💵 Efectivo</option>
+                        <option value="card" ${sale.paymentMethod === 'card' ? 'selected' : ''}>💳 Tarjeta</option>
+                        <option value="qr" ${sale.paymentMethod === 'qr' ? 'selected' : ''}>📱 QR / Transferencia</option>
+                        <option value="other" ${sale.paymentMethod === 'other' ? 'selected' : ''}> Otras Formas</option>
+                    </select>
+                </div>
+                <small class="form-hint">Esto cambiará el estado de la venta en tus reportes.</small>
+            </div>
+        `;
         const footer = `
-    < button class="btn btn-secondary" onclick = "closeModal()" > Cancelar</button >
-        <button class="btn btn-primary" onclick="ReportsView.savePaymentUpdate(${saleId})">Guardar</button>
-`;
-        showModal(content, { title: 'Corregir Pago', footer, width: '400px' });
+            <div class="modal-actions-premium">
+                <button class="btn btn-secondary glass-btn" onclick="closeModal()">Cancelar</button>
+                <button class="btn btn-primary premium-action-btn" onclick="ReportsView.savePaymentUpdate(${saleId})">
+                    <span>Guardar Cambios</span>
+                </button>
+            </div>
+        `;
+        showModal(content, { title: 'Corregir Método de Pago', footer, width: '450px' });
     },
 
     async savePaymentUpdate(saleId) {
@@ -1383,5 +1411,14 @@ const ReportsView = {
         }
 
         showModal(content, { title, width: '700px' });
+    },
+
+    destroy() {
+        if (this.activeCharts) {
+            this.activeCharts.forEach(c => {
+                try { c.destroy(); } catch(e) {}
+            });
+            this.activeCharts = [];
+        }
     }
 };

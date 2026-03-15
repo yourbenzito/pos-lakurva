@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es"> <!-- Actualizado: 13-03-2026 20:10 -->
 
 <head>
     <meta charset="UTF-8">
@@ -13,12 +13,12 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="POS Mini">
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self' https://cdn.sheetjs.com https://cdnjs.cloudflare.com https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; connect-src 'self' http://localhost:3000 http://127.0.0.1:3000 http://*:3000 https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; img-src 'self' data:; font-src 'self'">
+        content="default-src 'self' data: gap: https://ssl.gstatic.com 'unsafe-eval' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://cdn.sheetjs.com https://unpkg.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src * 'unsafe-inline'; worker-src 'self' blob:;">
     <link rel="apple-touch-icon" href="icons/icon.svg">
     <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
-    <title>POS Minimarket - Sistema de Punto de Venta</title>
-    <!-- Manifest se carga dinámicamente para evitar errores de CORS en Electron -->
-    <link rel="stylesheet" href="css/styles.css">
+    <title>CajaFácil POS v2026.3</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/styles.css?v=2026.final.v3">
 </head>
 
 <body>
@@ -60,16 +60,55 @@
         }
         checkVersion();
     </script>
-    <!-- Splash screen para carga -->
+    <!-- Google Fonts para diseño premium -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Splash screen para carga (Diseño Premium 2026) -->
     <div id="splash-screen"
-        style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: #2563eb; display: flex; align-items: center; justify-content: center; z-index: 9999;">
-        <div style="text-align: center; color: white;">
-            <div style="font-size: 4rem; margin-bottom: 1rem;">🛒</div>
-            <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">CajaFácil</h1>
-            <div class="loading"></div>
-            <p style="margin-top: 1rem; opacity: 0.8;">Cargando sistema...</p>
+        style="position: fixed; inset: 0; background: #f8fafc; display: flex; align-items: center; justify-content: center; z-index: 10000; font-family: 'Outfit', sans-serif; overflow: hidden;">
+        
+        <!-- Fondo Soft -->
+        <div style="position: absolute; inset: 0; background: radial-gradient(circle at top right, rgba(79, 70, 229, 0.05), transparent 40%); opacity: 0.8;"></div>
+
+        <!-- Contenedor Premium -->
+        <div style="position: relative; z-index: 10; text-align: center; background: #ffffff; border: 1px solid #e2e8f0; padding: 4rem 3rem; border-radius: 2.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.1); animation: splashFadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;">
+            
+            <div class="logo-animation" style="position: relative; width: 100px; height: 100px; margin: 0 auto 2rem; display: flex; align-items: center; justify-content: center;">
+                <div style="position: absolute; width: 100%; height: 100%; border: 3px solid #4f46e5; border-radius: 24px; animation: rotating-glow 4s linear infinite;"></div>
+                <div style="font-size: 3rem; z-index: 1; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">🛒</div>
+            </div>
+            
+            <h1 style="color: #0f172a; font-size: 2.5rem; font-weight: 800; margin: 0; letter-spacing: -1px; line-height: 1;">Caja<span style="color: #4f46e5;">Fácil</span></h1>
+            <p style="color: #64748b; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 4px; margin-top: 0.5rem; margin-bottom: 2.5rem; font-weight: 700;">Diseño Remodelado 2026</p>
+            
+            <!-- Barra de Progreso -->
+            <div style="width: 200px; height: 4px; background: #f1f5f9; border-radius: 10px; margin: 0 auto 1.25rem; overflow: hidden; position: relative;">
+                <div style="position: absolute; height: 100%; width: 50%; background: #4f46e5; border-radius: 10px; animation: infinite-smooth-scroll 1.5s ease-in-out infinite;"></div>
+            </div>
+            
+            <p id="loading-text" style="color: #64748b; font-size: 0.875rem; font-family: 'Inter', sans-serif; font-weight: 500;">Iniciando sistema seguro...</p>
         </div>
     </div>
+
+    <style>
+        @keyframes splashFadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes rotating-glow {
+            0% { transform: rotate(0deg); border-color: #3b82f6; box-shadow: 0 0 15px rgba(59,130,246,0.5); }
+            50% { transform: rotate(180deg); border-color: #60a5fa; box-shadow: 0 0 30px rgba(59,130,246,0.8); }
+            100% { transform: rotate(360deg); border-color: #3b82f6; box-shadow: 0 0 15px rgba(59,130,246,0.5); }
+        }
+        @keyframes floatSplashLogo {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-12px); }
+        }
+        @keyframes infinite-smooth-scroll {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+    </style>
 
     <div id="app" style="display: none;">
         <button id="mobile-menu-btn" class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
@@ -129,32 +168,33 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
     <script src="js/config.js"></script>
     <script src="js/utils/api-client.js"></script>
     <script src="js/utils/formatter.js?v=2.1"></script>
-    <script src="js/utils/alerts.js?v=2.1"></script>
-    <script src="js/utils/backup.js?v=2.1"></script>
+    <script src="js/utils/alerts.js?v=4.0"></script>
+    <script src="js/utils/backup.js?v=4.0"></script>
     <script src="js/utils/debounce.js?v=2.4"></script>
     <script src="js/utils/keyboard.js?v=2.3"></script>
     <script src="js/utils/validator.js?v=2.1"></script>
-    <script src="js/db.js?v=2.2"></script>
+    <script src="js/db.js?v=20.10"></script>
     <!-- Repositories -->
-    <script src="js/repositories/BaseRepository.js?v=2.2"></script>
+    <script src="js/repositories/BaseRepository.js?v=2.3"></script>
     <script src="js/repositories/productRepository.js?v=2.2"></script>
-    <script src="js/repositories/SaleRepository.js?v=2.2"></script>
-    <script src="js/repositories/CustomerRepository.js?v=2.2"></script>
-    <script src="js/repositories/PaymentRepository.js?v=2.3"></script>
-    <script src="js/repositories/PurchaseRepository.js?v=2.2"></script>
-    <script src="js/repositories/StockMovementRepository.js?v=2.2"></script>
-    <script src="js/repositories/CashRegisterRepository.js?v=2.2"></script>
-    <script src="js/repositories/CashMovementRepository.js?v=2.1"></script>
-    <script src="js/repositories/SupplierRepository.js?v=2.2"></script>
-    <script src="js/repositories/UserRepository.js?v=2.2"></script>
-    <script src="js/repositories/PasswordResetRepository.js?v=1.0"></script>
-    <script src="js/repositories/ExpenseRepository.js?v=1.0"></script>
-    <script src="js/repositories/CustomerCreditDepositRepository.js?v=1.0"></script>
-    <script src="js/repositories/CustomerCreditUseRepository.js?v=1.0"></script>
-    <script src="js/repositories/SaleReturnRepository.js?v=1.0"></script>
+    <script src="js/repositories/SaleRepository.js?v=4.0"></script>
+    <script src="js/repositories/CustomerRepository.js?v=4.0"></script>
+    <script src="js/repositories/PaymentRepository.js?v=4.0"></script>
+    <script src="js/repositories/PurchaseRepository.js?v=4.0"></script>
+    <script src="js/repositories/StockMovementRepository.js?v=4.0"></script>
+    <script src="js/repositories/CashRegisterRepository.js?v=4.0"></script>
+    <script src="js/repositories/CashMovementRepository.js?v=4.0"></script>
+    <script src="js/repositories/SupplierRepository.js?v=4.0"></script>
+    <script src="js/repositories/UserRepository.js?v=4.0"></script>
+    <script src="js/repositories/PasswordResetRepository.js?v=4.0"></script>
+    <script src="js/repositories/ExpenseRepository.js?v=4.0"></script>
+    <script src="js/repositories/CustomerCreditDepositRepository.js?v=4.0"></script>
+    <script src="js/repositories/CustomerCreditUseRepository.js?v=4.0"></script>
+    <script src="js/repositories/SaleReturnRepository.js?v=4.0"></script>
     <script src="js/repositories/SupplierPaymentRepository.js?v=1.0"></script>
     <script src="js/repositories/ProductPriceHistoryRepository.js?v=1.0"></script>
     <!-- Graficos -->
@@ -167,7 +207,7 @@
     <script src="js/services/AccountService.js?v=2.3"></script>
     <script src="js/services/SaleService.js?v=2.3"></script>
     <script src="js/services/SaleReturnService.js?v=1.0"></script>
-    <script src="js/services/SupplierPaymentService.js?v=1.0"></script>
+    <script src="js/services/SupplierPaymentService.js?v=6.0"></script>
     <script src="js/services/CustomerAccountService.js?v=1.0"></script>
     <!-- Validators -->
     <script src="js/validators/PaymentValidator.js?v=2.2"></script>
@@ -186,7 +226,7 @@
     <script src="js/models/SaleReturn.js?v=1.0"></script>
     <script src="js/models/Customer.js?v=2.1"></script>
     <script src="js/models/Supplier.js?v=2.1"></script>
-    <script src="js/models/Purchase.js?v=2.3"></script>
+    <script src="js/models/Purchase.js?v=6.0"></script>
     <script src="js/models/SupplierPayment.js?v=1.0"></script>
     <script src="js/models/CashRegister.js?v=2.3"></script>
     <script src="js/models/StockMovement.js?v=2.1"></script>
@@ -203,63 +243,43 @@
     <script src="js/controllers/ProductController.js?v=2.1"></script>
     <script src="js/controllers/POSController.js?v=2.2"></script>
     <script src="js/controllers/CustomerController.js?v=2.1"></script>
-    <script src="js/controllers/SupplierController.js?v=2.1"></script>
+    <script src="js/controllers/SupplierController.js?v=5.0"></script>
     <script src="js/controllers/CashController.js?v=2.1"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="js/controllers/ReportController.js?v=2.3"></script>
+    <script src="js/controllers/ReportController.js?v=2.4"></script>
     <script src="js/controllers/ExpenseController.js?v=1.0"></script>
-    <script src="js/views/pos.js?v=2.5"></script>
-    <script src="js/views/products.js?v=2.1"></script>
-    <script src="js/views/customers.js?v=2.4"></script>
-    <script src="js/views/suppliers.js?v=2.1"></script>
-    <script src="js/views/purchases.js?v=2.3"></script>
+    <script src="js/views/pos.js?v=4.0"></script>
+    <script src="js/views/products.js?v=20.10"></script>
+    <script src="js/views/customers.js?v=20.10"></script>
+    <script src="js/views/suppliers.js?v=5.0"></script>
+    <script src="js/views/purchases.js?v=6.0"></script>
     <script src="js/views/cash.js?v=2.1"></script>
     <script src="js/views/inventory.js?v=2.1"></script>
-    <script src="js/views/reports.js?v=2.6"></script>
-    <script src="js/views/expenses.js?v=1.0"></script>
-    <script src="js/views/sales.js?v=2.1"></script>
-    <script src="js/views/settings.js?v=2.1"></script>
-    <script src="js/views/auditLogs.js?v=1.0"></script>
-    <script src="js/app.js?v=2.2"></script>
+    <script src="js/views/reports.js?v=2.8"></script>
+    <script src="js/views/expenses.js?v=4.0"></script>
+    <script src="js/views/sales.js?v=4.0"></script>
+    <script src="js/views/settings.js?v=4.0"></script>
+    <script src="js/views/auditLogs.js?v=4.0"></script>
+    <script src="js/app.js?v=2026.3.1"></script>
     <script src="js/utils/zeroBrankitoAccount.js?v=1.0"></script>
 
     <script>
-        // Cargar manifest.json de manera segura (solo si no estamos en file://)
-        (function () {
-            try {
-                // Solo intentar cargar manifest si estamos en un servidor HTTP/HTTPS o en Electron
-                if (window.location.protocol === 'http:' || window.location.protocol === 'https:') {
-                    const link = document.createElement('link');
-                    link.rel = 'manifest';
-                    link.href = 'manifest.json';
-                    document.head.appendChild(link);
-                } else if (typeof require !== 'undefined' || window.navigator.userAgent.includes('Electron')) {
-                    // En Electron, cargar manifest de manera segura
-                    try {
-                        const link = document.createElement('link');
-                        link.rel = 'manifest';
-                        link.href = 'manifest.json';
-                        link.onerror = function () {
-                            // Silenciar error si no se puede cargar en Electron/file://
-                            try { this.remove(); } catch (e) { }
-                        };
-                        document.head.appendChild(link);
-                    } catch (e) {
-                        // Ignorar errores de manifest en Electron/file://
-                        console.log('Manifest.json no disponible (modo Electron/file://)');
-                    }
-                }
-            } catch (e) {
-                // Ignorar errores de manifest completamente
-                console.log('Manifest.json no disponible');
-            }
-        })();
+        // Registro de Service Worker para PWA (Celulares)
+        if ('serviceWorker' in navigator && (window.location.protocol === 'http:' || window.location.protocol === 'https:')) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js?v=2026.3')
+                    .then(reg => console.log('✅ Service Worker registrado para modo App'))
+                    .catch(err => console.warn('❌ Falló el registro del Service Worker', err));
+            });
+        }
 
         // Ocultar splash screen cuando todo cargue
         window.addEventListener('load', () => {
             setTimeout(() => {
-                document.getElementById('splash-screen').style.display = 'none';
-                document.getElementById('app').style.display = 'flex';
+                const splash = document.getElementById('splash-screen');
+                const appDiv = document.getElementById('app');
+                if (splash) splash.style.display = 'none';
+                if (appDiv) appDiv.style.display = 'flex';
 
                 // Mostrar nombre del negocio en el sidebar
                 try {
@@ -272,25 +292,28 @@
                         }
                     }
                 } catch (e) { }
-            }, 1000);
+            }, 200);
         });
 
         // Monitorear estado de red
         window.addEventListener('online', () => {
-            document.getElementById('online-indicator').innerHTML = '🟢 Sistema Listo';
+            const indicator = document.getElementById('online-indicator');
+            if (indicator) indicator.innerHTML = '🟢 Sistema Listo';
         });
 
         window.addEventListener('offline', () => {
-            document.getElementById('online-indicator').innerHTML = '🔴 Modo Offline';
+            const indicator = document.getElementById('online-indicator');
+            if (indicator) indicator.innerHTML = '🔴 Modo Offline';
         });
 
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const overlay = document.getElementById('mobile-overlay');
-            sidebar.classList.toggle('active');
-            overlay.style.display = sidebar.classList.contains('active') ? 'block' : 'none';
+            if (sidebar) sidebar.classList.toggle('active');
+            if (overlay) overlay.style.display = sidebar && sidebar.classList.contains('active') ? 'block' : 'none';
         }
     </script>
+
 
 </body>
 

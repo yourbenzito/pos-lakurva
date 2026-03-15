@@ -34,7 +34,9 @@ const InventoryView = {
             supplierName: suppliersMap[p.supplierId] || 'Sin proveedor'
         }));
 
-        this.recentMovements = await StockMovement.getAll();
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        this.recentMovements = await StockMovement.getByDateRange(thirtyDaysAgo, new Date());
 
         // Poblar categorías y productos para auditoría
         this.allProducts = this.products.filter(p => !p.deleted);
@@ -197,14 +199,14 @@ const InventoryView = {
         return `
             <div class="view-header animate-fade-in">
                 <div class="header-content">
-                    <h1>Inventario y Stock</h1>
-                    <p>Control y movimientos de inventario</p>
+                    <h1 style="color: #111827;">Inventario y Stock</h1>
+                    <p style="color: #4b5563;">Control y movimientos de inventario</p>
                 </div>
             </div>
 
             <div class="inventory-container animate-fade-in">
-                <div class="card glass-panel pos-panel" style="padding: 1rem;">
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-start; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 0.5rem;">
+                <div class="card" style="padding: 1rem; background: #f9fafb; border: 1.5px solid #e5e7eb; margin-bottom: 0;">
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-start;">
                         <button class="btn ${this.currentSection === 'inventory' ? 'btn-primary' : 'btn-secondary'}" 
                                 onclick="InventoryView.switchSection('inventory')" 
                                 style="padding: 0.5rem 0.8rem; font-size: 0.85rem; flex: 0 1 auto; min-width: 100px;"
@@ -273,75 +275,75 @@ const InventoryView = {
     renderInventoryDashboard(dashboard) {
         return `
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
-                <div class="stat-card" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(37, 99, 235, 0.1)); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 1rem; padding: 1.5rem; position: relative;">
-                    <div style="font-size: 2rem; position: absolute; right: 1.5rem; top: 1.5rem; opacity: 0.8;">💼</div>
-                    <h3 style="color: #93c5fd; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem;">CAPITAL INVERTIDO</h3>
-                    <div class="value" style="color: #60a5fa; font-size: 2.25rem; font-weight: 800; text-shadow: 0 2px 10px rgba(59, 130, 246, 0.3);">${formatCLP(dashboard.totalCapital)}</div>
-                    <p style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(59, 130, 246, 0.2); font-size: 0.8rem; color: #93c5fd;">Costo neto del total de stock (${dashboard.activeItems} productos)</p>
+                <div style="background: #ffffff; border: 1.5px solid #bfdbfe; border-left: 5px solid #3b82f6; border-radius: 1rem; padding: 1.5rem; position: relative; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 28px rgba(59,130,246,0.15)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'">
+                    <div style="font-size: 2rem; position: absolute; right: 1.5rem; top: 1.5rem; opacity: 0.6;">💼</div>
+                    <h3 style="color: #1d4ed8; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.5rem; font-weight: 700;">CAPITAL INVERTIDO</h3>
+                    <div style="color: #1d4ed8; font-size: 2.1rem; font-weight: 800; line-height: 1;">${formatCLP(dashboard.totalCapital)}</div>
+                    <p style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #dbeafe; font-size: 0.78rem; color: #3b82f6; font-weight: 600;">Costo neto del total de stock (${dashboard.activeItems} productos)</p>
                 </div>
 
-                <div class="stat-card" style="background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(124, 58, 237, 0.1)); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 1rem; padding: 1.5rem; position: relative;">
-                    <div style="font-size: 2rem; position: absolute; right: 1.5rem; top: 1.5rem; opacity: 0.8;">🏷️</div>
-                    <h3 style="color: #d8b4fe; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem;">VALOR VENTA TOTAL (STOCK)</h3>
-                    <div class="value" style="color: #c084fc; font-size: 2.25rem; font-weight: 800; text-shadow: 0 2px 10px rgba(168, 85, 247, 0.3);">${formatCLP(dashboard.totalProjected)}</div>
-                    <p style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(168, 85, 247, 0.2); font-size: 0.8rem; color: #d8b4fe;">Recaudación estimada si vendes todo el stock</p>
+                <div style="background: #ffffff; border: 1.5px solid #e9d5ff; border-left: 5px solid #8b5cf6; border-radius: 1rem; padding: 1.5rem; position: relative; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 28px rgba(139,92,246,0.15)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'">
+                    <div style="font-size: 2rem; position: absolute; right: 1.5rem; top: 1.5rem; opacity: 0.6;">🏷️</div>
+                    <h3 style="color: #6d28d9; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.5rem; font-weight: 700;">VALOR VENTA TOTAL (STOCK)</h3>
+                    <div style="color: #6d28d9; font-size: 2.1rem; font-weight: 800; line-height: 1;">${formatCLP(dashboard.totalProjected)}</div>
+                    <p style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #ede9fe; font-size: 0.78rem; color: #7c3aed; font-weight: 600;">Recaudación estimada si vendes todo el stock</p>
                 </div>
 
-                <div class="stat-card" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.1)); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 1rem; padding: 1.5rem; position: relative;">
-                    <div style="font-size: 2rem; position: absolute; right: 1.5rem; top: 1.5rem; opacity: 0.8;">📈</div>
-                    <h3 style="color: #6ee7b7; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem;">GANANCIA BRUTA (SIN IVA)</h3>
-                    <div class="value" style="color: #34d399; font-size: 2.25rem; font-weight: 800; text-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);">${formatCLP(dashboard.profit)}</div>
-                    <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(16, 185, 129, 0.2);">
+                <div style="background: #ffffff; border: 1.5px solid #a7f3d0; border-left: 5px solid #10b981; border-radius: 1rem; padding: 1.5rem; position: relative; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 28px rgba(16,185,129,0.15)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'">
+                    <div style="font-size: 2rem; position: absolute; right: 1.5rem; top: 1.5rem; opacity: 0.6;">📈</div>
+                    <h3 style="color: #065f46; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.5rem; font-weight: 700;">GANANCIA BRUTA (SIN IVA)</h3>
+                    <div style="color: #059669; font-size: 2.1rem; font-weight: 800; line-height: 1;">${formatCLP(dashboard.profit)}</div>
+                    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #d1fae5;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <span style="font-size: 0.8rem; color: #6ee7b7;">Margen Global Estimado</span>
-                            <span style="background: rgba(16, 185, 129, 0.2); color: #6ee7b7; padding: 0.1rem 0.5rem; border-radius: 1rem; font-size: 0.75rem; font-weight: bold;">+${dashboard.margin.toFixed(1)}%</span>
+                            <span style="font-size: 0.78rem; color: #059669; font-weight: 600;">Margen Global Estimado</span>
+                            <span style="background: #d1fae5; color: #065f46; padding: 0.1rem 0.5rem; border-radius: 1rem; font-size: 0.75rem; font-weight: 700; border: 1px solid #a7f3d0;">+${dashboard.margin.toFixed(1)}%</span>
                         </div>
                     </div>
                 </div>
 
-                <div class="stat-card" style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(59, 130, 246, 0.1)); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 1rem; padding: 1.5rem; position: relative; cursor: pointer;" onclick="InventoryView.switchSection('consumption-report')">
-                    <div style="font-size: 2rem; position: absolute; right: 1.5rem; top: 1.5rem; opacity: 0.8;">🍴</div>
-                    <h3 style="color: #93c5fd; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem;">CONSUMO INTERNO (MES)</h3>
-                    <div class="value" style="color: #60a5fa; font-size: 2.25rem; font-weight: 800;">${formatCLP(dashboard.monthlyConsumption)}</div>
-                    <p style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(59, 130, 246, 0.2); font-size: 0.8rem; color: #93c5fd;">Gasto acumulado por consumo de la casa</p>
+                <div style="background: #ffffff; border: 1.5px solid #bfdbfe; border-left: 5px solid #3b82f6; border-radius: 1rem; padding: 1.5rem; position: relative; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 28px rgba(59,130,246,0.15)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'" onclick="InventoryView.switchSection('consumption-report')">
+                    <div style="font-size: 2rem; position: absolute; right: 1.5rem; top: 1.5rem; opacity: 0.6;">🍴</div>
+                    <h3 style="color: #1d4ed8; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.5rem; font-weight: 700;">CONSUMO INTERNO (MES)</h3>
+                    <div style="color: #2563eb; font-size: 2.1rem; font-weight: 800; line-height: 1;">${formatCLP(dashboard.monthlyConsumption)}</div>
+                    <p style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #dbeafe; font-size: 0.78rem; color: #3b82f6; font-weight: 600;">Gasto acumulado por consumo de la casa</p>
                 </div>
 
-                <div class="stat-card" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(239, 68, 68, 0.1)); border: 1px solid rgba(239, 68, 68, 0.3); border-radius: 1rem; padding: 1.5rem; position: relative; cursor: pointer;" onclick="InventoryView.switchSection('loss-report')">
-                    <div style="font-size: 2rem; position: absolute; right: 1.5rem; top: 1.5rem; opacity: 0.8;">🗑️</div>
-                    <h3 style="color: #fca5a5; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 0.5rem;">PÉRDIDAS (MES)</h3>
-                    <div class="value" style="color: #f87171; font-size: 2.25rem; font-weight: 800;">${formatCLP(dashboard.monthlyLoss)}</div>
-                    <p style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid rgba(239, 68, 68, 0.2); font-size: 0.8rem; color: #fca5a5;">Valor de mercadería perdida o dañada</p>
+                <div style="background: #ffffff; border: 1.5px solid #fecaca; border-left: 5px solid #ef4444; border-radius: 1rem; padding: 1.5rem; position: relative; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 28px rgba(239,68,68,0.15)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='none'" onclick="InventoryView.switchSection('loss-report')">
+                    <div style="font-size: 2rem; position: absolute; right: 1.5rem; top: 1.5rem; opacity: 0.6;">🗑️</div>
+                    <h3 style="color: #b91c1c; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 0.5rem; font-weight: 700;">PÉRDIDAS (MES)</h3>
+                    <div style="color: #dc2626; font-size: 2.1rem; font-weight: 800; line-height: 1;">${formatCLP(dashboard.monthlyLoss)}</div>
+                    <p style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #fee2e2; font-size: 0.78rem; color: #ef4444; font-weight: 600;">Valor de mercadería perdida o dañada</p>
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                     <button class="stat-card stat-card-button ${this.stockFilter === 'low' ? 'stat-card-selected' : ''}"
-                            style="flex: 1; margin: 0; padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; border-radius: 0.75rem; background: ${this.stockFilter === 'low' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(31, 41, 55, 0.6)'}; border: 1px solid ${this.stockFilter === 'low' ? 'rgba(245, 158, 11, 0.4)' : 'rgba(255,255,255,0.05)'}; transition: all 0.2s;"
+                            style="flex: 1; margin: 0; padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; border-radius: 0.75rem; background: ${this.stockFilter === 'low' ? '#fef3c7' : '#ffffff'}; border: 1.5px solid ${this.stockFilter === 'low' ? '#f59e0b' : '#e5e7eb'}; transition: all 0.2s;"
                             onclick="InventoryView.setStockFilter('low')">
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
                             <span style="font-size: 1.25rem;">⚠️</span>
-                            <span style="font-size: 0.95rem; font-weight: 600; color: ${this.stockFilter === 'low' ? '#fcd34d' : '#e2e8f0'};">Stock Bajo</span>
+                            <span style="font-size: 0.95rem; font-weight: 600; color: ${this.stockFilter === 'low' ? '#b45309' : '#374151'};">Stock Bajo</span>
                         </div>
-                        <span style="background: ${this.stockFilter === 'low' ? 'rgba(245, 158, 11, 0.3)' : 'rgba(255,255,255,0.1)'}; color: ${this.stockFilter === 'low' ? '#fbbf24' : '#94a3b8'}; padding: 0.25rem 0.75rem; border-radius: 1rem; font-weight: bold;">${dashboard.lowStock}</span>
+                        <span style="background: ${this.stockFilter === 'low' ? '#f59e0b' : '#e5e7eb'}; color: ${this.stockFilter === 'low' ? '#ffffff' : '#4b5563'}; padding: 0.25rem 0.75rem; border-radius: 1rem; font-weight: bold;">${dashboard.lowStock}</span>
                     </button>
                     
                     <button class="stat-card stat-card-button ${this.stockFilter === 'out' ? 'stat-card-selected' : ''}"
-                            style="flex: 1; margin: 0; padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; border-radius: 0.75rem; background: ${this.stockFilter === 'out' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(31, 41, 55, 0.6)'}; border: 1px solid ${this.stockFilter === 'out' ? 'rgba(239, 68, 68, 0.4)' : 'rgba(255,255,255,0.05)'}; transition: all 0.2s;"
+                            style="flex: 1; margin: 0; padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; border-radius: 0.75rem; background: ${this.stockFilter === 'out' ? '#fef2f2' : '#ffffff'}; border: 1.5px solid ${this.stockFilter === 'out' ? '#ef4444' : '#e5e7eb'}; transition: all 0.2s;"
                             onclick="InventoryView.setStockFilter('out')">
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
                             <span style="font-size: 1.25rem;">🛑</span>
-                            <span style="font-size: 0.95rem; font-weight: 600; color: ${this.stockFilter === 'out' ? '#fca5a5' : '#e2e8f0'};">Sin Stock</span>
+                            <span style="font-size: 0.95rem; font-weight: 600; color: ${this.stockFilter === 'out' ? '#b91c1c' : '#374151'};">Sin Stock</span>
                         </div>
-                        <span style="background: ${this.stockFilter === 'out' ? 'rgba(239, 68, 68, 0.3)' : 'rgba(255,255,255,0.1)'}; color: ${this.stockFilter === 'out' ? '#f87171' : '#94a3b8'}; padding: 0.25rem 0.75rem; border-radius: 1rem; font-weight: bold;">${dashboard.outOfStock}</span>
+                        <span style="background: ${this.stockFilter === 'out' ? '#ef4444' : '#e5e7eb'}; color: ${this.stockFilter === 'out' ? '#ffffff' : '#4b5563'}; padding: 0.25rem 0.75rem; border-radius: 1rem; font-weight: bold;">${dashboard.outOfStock}</span>
                     </button>
                     
                     <button class="stat-card stat-card-button ${this.stockFilter === 'expiring' ? 'stat-card-selected' : ''}"
-                            style="flex: 1; margin: 0; padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; border-radius: 0.75rem; background: ${this.stockFilter === 'expiring' ? 'rgba(168, 85, 247, 0.2)' : 'rgba(31, 41, 55, 0.6)'}; border: 1px solid ${this.stockFilter === 'expiring' ? 'rgba(168, 85, 247, 0.4)' : 'rgba(255,255,255,0.05)'}; transition: all 0.2s;"
+                            style="flex: 1; margin: 0; padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; border-radius: 0.75rem; background: ${this.stockFilter === 'expiring' ? '#f5f3ff' : '#ffffff'}; border: 1.5px solid ${this.stockFilter === 'expiring' ? '#8b5cf6' : '#e5e7eb'}; transition: all 0.2s;"
                             onclick="InventoryView.setStockFilter('expiring')">
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
                             <span style="font-size: 1.25rem;">⏳</span>
-                            <span style="font-size: 0.95rem; font-weight: 600; color: ${this.stockFilter === 'expiring' ? '#d8b4fe' : '#e2e8f0'};">Próx. a vencer</span>
+                            <span style="font-size: 0.95rem; font-weight: 600; color: ${this.stockFilter === 'expiring' ? '#6d28d9' : '#374151'};">Próx. a vencer</span>
                         </div>
-                        <span style="background: ${this.stockFilter === 'expiring' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(255,255,255,0.1)'}; color: ${this.stockFilter === 'expiring' ? '#c084fc' : '#94a3b8'}; padding: 0.25rem 0.75rem; border-radius: 1rem; font-weight: bold;">${dashboard.expiringSoon}</span>
+                        <span style="background: ${this.stockFilter === 'expiring' ? '#8b5cf6' : '#e5e7eb'}; color: ${this.stockFilter === 'expiring' ? '#ffffff' : '#4b5563'}; padding: 0.25rem 0.75rem; border-radius: 1rem; font-weight: bold;">${dashboard.expiringSoon}</span>
                     </button>
                 </div>
             </div>

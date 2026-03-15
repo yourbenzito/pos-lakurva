@@ -11,7 +11,12 @@ const AuditLogsView = {
             `;
         }
 
-        const logs = await db.getAll('auditLogs');
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const start = thirtyDaysAgo.toISOString();
+        const end = new Date().toISOString();
+        // Carga rápida: solo los últimos 30 días para evitar lag extremo
+        const logs = await db.getByIndexRange('auditLogs', 'timestamp', start, end);
         logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
         // Group actions

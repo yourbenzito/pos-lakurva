@@ -39,6 +39,7 @@ class AuthManager {
     }
 
     static requireAuth() {
+
         if (!this.isAuthenticated()) {
             this.showLoginScreen();
             return false;
@@ -58,122 +59,141 @@ class AuthManager {
 
         const loginHTML = `
             <div id="login-screen" class="login-screen">
+                <div class="login-background-overlay"></div>
                 <div class="login-panel">
                     <div class="login-content">
-                        <div class="login-header">
-                            <div class="login-header-icon">🛒</div>
-                            <h1 class="login-title">CajaFácil</h1>
-                            <p class="login-subtitle" id="login-subtitle">Inicia sesión o crea una cuenta</p>
+                        <div class="login-brand-compact">
+                            <div class="brand-logo">🛒</div>
+                            <h1 class="brand-name">Caja<span>Fácil</span></h1>
+                        </div>
+
+                        <div class="login-header" style="margin-bottom: 0.75rem;">
+                            <h2 id="login-form-title" style="display: none;">Bienvenido</h2>
+                            <p class="login-subtitle" id="login-subtitle" style="font-size: 0.8rem; margin: 0;">Ingresa tus datos para continuar</p>
                         </div>
 
                         <form id="login-form" class="login-form">
-                            <div id="business-name-group" style="display: none;" class="login-form-group">
-                                <label class="login-label" for="login-business-name">🏪 Nombre de tu Negocio</label>
-                                <input type="text" id="login-business-name" autocomplete="organization" class="login-input" placeholder="Ej: Minimarket Don Juan">
-                                <small style="color: #9ca3af; font-size: 0.75rem;">Este nombre aparecerá en tus boletas y reportes</small>
+                            <div class="login-form-row">
+                                <div class="login-form-group">
+                                    <label class="login-label" for="login-username">Usuario</label>
+                                    <div class="input-wrapper">
+                                        <span class="input-icon">👤</span>
+                                        <input type="text" id="login-username" autocomplete="username" required class="login-input" placeholder="Usuario">
+                                    </div>
+                                </div>
+
+                                <div class="login-form-group">
+                                    <label class="login-label" for="login-password">Contraseña</label>
+                                    <div class="input-wrapper">
+                                        <span class="input-icon">🔒</span>
+                                        <input type="password" id="login-password" autocomplete="current-password" required class="login-input" placeholder="••••">
+                                    </div>
+                                </div>
                             </div>
 
-                            <div class="login-form-group">
-                                <label class="login-label" for="login-username">Usuario</label>
-                                <input type="text" id="login-username" autocomplete="username" required class="login-input" placeholder="Ingresa tu usuario">
-                            </div>
-
-                            <div class="login-form-group">
-                                <label class="login-label" for="login-password">Contraseña</label>
-                                <input type="password" id="login-password" autocomplete="current-password" required class="login-input" placeholder="Ingresa tu contraseña">
+                            <div id="business-name-group" class="login-form-group">
+                                <label class="login-label" for="login-business-name">🏪 Nombre del Negocio</label>
+                                <div class="input-wrapper">
+                                    <input type="text" id="login-business-name" autocomplete="organization" class="login-input" placeholder="Ej: Minimarket La Kurva">
+                                </div>
                             </div>
 
                             <div id="confirm-password-group" style="display: none;" class="login-form-group">
                                 <label class="login-label" for="confirm-password">Confirmar Contraseña</label>
-                                <input type="password" id="confirm-password" autocomplete="new-password" class="login-input" placeholder="Confirma tu contraseña">
+                                <div class="input-wrapper">
+                                    <span class="input-icon">🔑</span>
+                                    <input type="password" id="confirm-password" autocomplete="new-password" class="login-input" placeholder="Repite tu contraseña">
+                                </div>
                             </div>
 
-                            <div id="login-error" class="login-error" style="display: none;"></div>
+                            <div id="login-error" class="login-error" style="display: none; padding: 0.5rem; margin-top: 0.5rem;"></div>
 
-                            <button type="submit" id="login-btn" class="login-button">
-                                Iniciar Sesión
+                            <button type="submit" id="login-btn" class="login-button premium-btn">
+                                <span>Iniciar Sesión</span>
+                                <div class="btn-shine"></div>
                             </button>
 
-                            <div class="login-footer">
-                                <button type="button" id="toggle-mode-btn" class="login-link">
-                                    ¿No tienes cuenta? Regístrate aquí
+                            <div class="login-actions">
+                                <button type="button" id="toggle-mode-btn" class="login-link-btn">
+                                    ¿Nuevo aquí? Regístrate gratis
                                 </button>
-                            </div>
-
-                            <div class="login-divider"></div>
-
-                            <div class="login-footer">
-                                <button type="button" id="forgot-password-btn" class="login-link" onclick="return false;">
-                                    ¿Olvidaste tu contraseña?
+                                <button type="button" id="forgot-password-btn" class="login-link-btn secondary">
+                                    Recuperar contraseña
                                 </button>
                             </div>
                         </form>
                         
-                        <form id="recover-password-form" class="login-form" style="display: none;">
+                        <form id="recover-password-form" class="login-form pulse-form" style="display: none;">
                             <div class="recover-header">
-                                <div class="login-header-icon">🔐</div>
-                                <h2>Restablecer Contraseña</h2>
-                                <p>Usa tu PIN de administrador o código de recuperación</p>
+                                <div class="brand-logo" style="font-size: 2.5rem; margin-bottom: 0.5rem;">🔐</div>
+                                <h2>Recuperar Cuenta</h2>
+                                <p>Ingresa tu PIN o código de recuperación</p>
                             </div>
                             
                             <div class="login-form-group">
-                                <label class="login-label" for="reset-username">Usuario *</label>
-                                <input type="text" id="reset-username" autocomplete="username" required class="login-input" placeholder="Nombre de usuario">
+                                <label class="login-label" for="reset-username">Usuario registrado</label>
+                                <div class="input-wrapper">
+                                    <span class="input-icon">👤</span>
+                                    <input type="text" id="reset-username" autocomplete="username" required class="login-input" placeholder="Nombre de usuario">
+                                </div>
                             </div>
                             
                             <div class="login-form-group">
-                                <label class="login-label">Método de Restablecimiento *</label>
+                                <label class="login-label">¿Cómo quieres verificar?</label>
                                 <div class="login-method-options">
-                                    <label class="login-method-option active" id="method-pin-label">
-                                        <input type="radio" name="reset-method" value="adminPIN" id="reset-method-pin" checked>
-                                        <span>PIN Administrador</span>
-                                    </label>
-                                    <label class="login-method-option" id="method-code-label">
-                                        <input type="radio" name="reset-method" value="recoveryCode" id="reset-method-code">
-                                        <span>Código Recuperación</span>
-                                    </label>
+                                    <div class="login-method-option active" id="method-pin-label" data-value="adminPIN">
+                                        PIN Admin
+                                    </div>
+                                    <div class="login-method-option" id="method-code-label" data-value="recoveryCode">
+                                        Código
+                                    </div>
+                                    <input type="hidden" name="reset-method" id="reset-method-val" value="adminPIN">
                                 </div>
                             </div>
                             
                             <div id="reset-pin-group" class="login-form-group">
-                                <label class="login-label" for="reset-admin-pin">PIN de Administrador *</label>
-                                <input type="password" id="reset-admin-pin" autocomplete="off" maxlength="8" required class="login-input" placeholder="PIN (4-8 dígitos)">
-                                <small>PIN configurado por el administrador</small>
+                                <label class="login-label" for="reset-admin-pin">PIN de Administrador</label>
+                                <div class="input-wrapper">
+                                    <span class="input-icon">🔢</span>
+                                    <input type="password" id="reset-admin-pin" autocomplete="off" maxlength="8" class="login-input" placeholder="4-8 dígitos">
+                                </div>
                             </div>
                             
                             <div id="reset-code-group" style="display: none;" class="login-form-group">
-                                <label class="login-label" for="reset-recovery-code">Código de Recuperación *</label>
-                                <input type="text" id="reset-recovery-code" autocomplete="off" class="login-input" placeholder="XXXX-XXXX-XXXX">
-                                <small>Código generado previamente (formato: XXXX-XXXX-XXXX)</small>
-                            </div>
-                            
-                            <div class="login-form-group">
-                                <label class="login-label" for="recover-phone">Teléfono / PIN</label>
-                                <input type="text" id="recover-phone" autocomplete="off" class="login-input" placeholder="Ej: +569XXXXXXXX" maxlength="20">
-                                <small>Usa este dato para verificar tu identidad.</small>
+                                <label class="login-label" for="reset-recovery-code">Código de Recuperación</label>
+                                <div class="input-wrapper">
+                                    <span class="input-icon">📜</span>
+                                    <input type="text" id="reset-recovery-code" autocomplete="off" class="login-input" placeholder="XXXX-XXXX-XXXX">
+                                </div>
                             </div>
                             
                             <div id="new-password-group" style="display: none;">
                                 <div class="login-form-group">
-                                    <label class="login-label" for="new-password">Nueva Contraseña *</label>
-                                    <input type="password" id="new-password" autocomplete="new-password" class="login-input" placeholder="Nueva contraseña (mínimo 4 caracteres)">
+                                    <label class="login-label" for="new-password">Nueva Contraseña</label>
+                                    <div class="input-wrapper">
+                                        <span class="input-icon">🔑</span>
+                                        <input type="password" id="new-password" autocomplete="new-password" class="login-input" placeholder="Mínimo 4 caracteres">
+                                    </div>
                                 </div>
-                                
-                                <div class="login-form-group">
-                                    <label class="login-label" for="confirm-new-password">Confirmar Nueva Contraseña *</label>
-                                    <input type="password" id="confirm-new-password" autocomplete="new-password" class="login-input" placeholder="Confirma la nueva contraseña">
+                                <div class="login-form-group" style="margin-top: 1rem;">
+                                    <label class="login-label" for="confirm-new-password">Confirmar Nueva Contraseña</label>
+                                    <div class="input-wrapper">
+                                        <span class="input-icon">✅</span>
+                                        <input type="password" id="confirm-new-password" autocomplete="new-password" class="login-input" placeholder="Confirma tu contraseña">
+                                    </div>
                                 </div>
                             </div>
                             
                             <div id="recover-error" class="login-error" style="display: none;"></div>
                             
-                            <button type="submit" id="recover-btn" class="login-button">
-                                Verificar y Continuar
+                            <button type="submit" id="recover-btn" class="login-button premium-btn">
+                                <span>Verificar Identidad</span>
+                                <div class="btn-shine"></div>
                             </button>
                             
-                            <div class="login-footer login-extra">
-                                <button type="button" id="back-to-login-btn" class="login-link">
-                                    ← Volver al inicio de sesión
+                            <div class="login-actions">
+                                <button type="button" id="back-to-login-btn" class="login-link-btn">
+                                    ← Volver al inicio
                                 </button>
                             </div>
                         </form>
@@ -199,8 +219,8 @@ class AuthManager {
         const recoverPasswordForm = document.getElementById('recover-password-form');
         const backToLoginBtn = document.getElementById('back-to-login-btn');
         const resetUsernameInput = document.getElementById('reset-username');
-        const resetMethodPin = document.getElementById('reset-method-pin');
-        const resetMethodCode = document.getElementById('reset-method-code');
+        const resetMethodVal = document.getElementById('reset-method-val');
+        const methodOptions = recoverPasswordForm.querySelectorAll('.login-method-option');
         const resetPinGroup = document.getElementById('reset-pin-group');
         const resetCodeGroup = document.getElementById('reset-code-group');
         const resetAdminPinInput = document.getElementById('reset-admin-pin');
@@ -210,21 +230,23 @@ class AuthManager {
         const confirmNewPasswordInput = document.getElementById('confirm-new-password');
         const recoverErrorDiv = document.getElementById('recover-error');
         const recoverBtn = document.getElementById('recover-btn');
-        const recoverPhoneInput = document.getElementById('recover-phone');
 
         let isRegisterMode = false;
         let isRecoverMode = false;
         let resetMethodVerified = false;
 
-        // Función para alternar entre login y registro
+            // Función para alternar entre login y registro
         toggleModeBtn.addEventListener('click', () => {
             isRegisterMode = !isRegisterMode;
+
+            const formTitle = document.getElementById('login-form-title');
 
             if (isRegisterMode) {
                 // Modo Registro
                 subtitle.textContent = 'Registra tu negocio y crea tu cuenta';
-                loginBtn.textContent = 'Crear Mi Negocio';
-                toggleModeBtn.textContent = '¿Ya tienes cuenta? Inicia sesión aquí';
+                formTitle.textContent = 'Crear Cuenta';
+                loginBtn.querySelector('span').textContent = 'Comenzar Ahora';
+                toggleModeBtn.textContent = '¿Ya tienes cuenta? Ingresa aquí';
                 confirmPasswordGroup.style.display = 'block';
                 confirmPasswordInput.required = true;
                 businessNameGroup.style.display = 'block';
@@ -233,15 +255,15 @@ class AuthManager {
                 usernameInput.autocomplete = 'username';
             } else {
                 // Modo Login
-                subtitle.textContent = 'Inicia sesión o crea una cuenta';
-                loginBtn.textContent = 'Iniciar Sesión';
-                toggleModeBtn.textContent = '¿No tienes cuenta? Regístrate aquí';
+                subtitle.textContent = 'Ingresa tus credenciales para continuar';
+                formTitle.textContent = 'Bienvenido';
+                loginBtn.querySelector('span').textContent = 'Iniciar Sesión';
+                toggleModeBtn.textContent = '¿Nuevo aquí? Regístrate gratis';
                 confirmPasswordGroup.style.display = 'none';
                 confirmPasswordInput.required = false;
-                businessNameGroup.style.display = 'none';
-                businessNameInput.required = false;
+                businessNameGroup.style.display = 'block';
+                businessNameInput.required = true;
                 passwordInput.autocomplete = 'current-password';
-                usernameInput.autocomplete = 'username';
             }
 
             errorDiv.style.display = 'none';
@@ -257,33 +279,6 @@ class AuthManager {
         passwordInput.style.outline = 'none';
         confirmPasswordInput.style.outline = 'none';
 
-        usernameInput.addEventListener('focus', (e) => {
-            e.target.style.borderColor = '#667eea';
-        });
-        usernameInput.addEventListener('blur', (e) => {
-            e.target.style.borderColor = '#e5e7eb';
-        });
-        passwordInput.addEventListener('focus', (e) => {
-            e.target.style.borderColor = '#667eea';
-        });
-        passwordInput.addEventListener('blur', (e) => {
-            e.target.style.borderColor = '#e5e7eb';
-        });
-        confirmPasswordInput.addEventListener('focus', (e) => {
-            e.target.style.borderColor = '#667eea';
-        });
-        confirmPasswordInput.addEventListener('blur', (e) => {
-            e.target.style.borderColor = '#e5e7eb';
-        });
-
-        loginBtn.addEventListener('mouseenter', (e) => {
-            e.target.style.transform = 'translateY(-2px)';
-            e.target.style.boxShadow = '0 10px 20px rgba(102, 126, 234, 0.4)';
-        });
-        loginBtn.addEventListener('mouseleave', (e) => {
-            e.target.style.transform = 'translateY(0)';
-            e.target.style.boxShadow = 'none';
-        });
 
         // Prevenir que el formulario se envíe cuando se hace clic en el botón de recuperación
         // Nota: El botón ya tiene type="button" en el HTML, pero agregamos protección adicional
@@ -409,7 +404,7 @@ class AuthManager {
                 errorDiv.style.display = 'none';
 
                 try {
-                    await AuthManager.login(username, password);
+                    await AuthManager.login(username, password, businessNameInput.value.trim());
 
                     document.getElementById('login-screen').remove();
 
@@ -421,34 +416,40 @@ class AuthManager {
                     errorDiv.textContent = error.message;
                     errorDiv.style.display = 'block';
                     loginBtn.disabled = false;
-                    loginBtn.textContent = 'Iniciar Sesión';
+                    if (isRegisterMode) {
+                        loginBtn.querySelector('span').textContent = 'Comenzar Ahora';
+                    } else {
+                        loginBtn.querySelector('span').textContent = 'Iniciar Sesión';
+                    }
                 }
             }
         });
 
-        // Manejar cambio de método de restablecimiento
-        if (resetMethodPin && resetMethodCode) {
-            const updateResetMethod = () => {
-                const usePIN = resetMethodPin.checked;
-                resetPinGroup.style.display = usePIN ? 'block' : 'none';
-                resetCodeGroup.style.display = usePIN ? 'none' : 'block';
-                resetAdminPinInput.required = usePIN;
-                resetRecoveryCodeInput.required = !usePIN;
 
-                // Update label styles
-                const pinLabel = document.getElementById('method-pin-label');
-                const codeLabel = document.getElementById('method-code-label');
-                if (pinLabel) {
-                    pinLabel.classList.toggle('active', usePIN);
-                }
-                if (codeLabel) {
-                    codeLabel.classList.toggle('active', !usePIN);
-                }
-            };
 
-            resetMethodPin.addEventListener('change', updateResetMethod);
-            resetMethodCode.addEventListener('change', updateResetMethod);
-            updateResetMethod(); // Initial state
+        // Manejo de métodos de recuperación premium (PIN o Código)
+        if (methodOptions && methodOptions.length > 0) {
+            methodOptions.forEach(option => {
+                option.addEventListener('click', () => {
+                    methodOptions.forEach(opt => opt.classList.remove('active'));
+                    option.classList.add('active');
+                    
+                    const value = option.dataset.value;
+                    if (resetMethodVal) resetMethodVal.value = value;
+                    
+                    if (value === 'adminPIN') {
+                        if (resetPinGroup) resetPinGroup.style.display = 'block';
+                        if (resetCodeGroup) resetCodeGroup.style.display = 'none';
+                        if (resetAdminPinInput) resetAdminPinInput.required = true;
+                        if (resetRecoveryCodeInput) resetRecoveryCodeInput.required = false;
+                    } else {
+                        if (resetPinGroup) resetPinGroup.style.display = 'none';
+                        if (resetCodeGroup) resetCodeGroup.style.display = 'block';
+                        if (resetAdminPinInput) resetAdminPinInput.required = false;
+                        if (resetRecoveryCodeInput) resetRecoveryCodeInput.required = true;
+                    }
+                });
+            });
         }
 
         // Formatear código de recuperación mientras se escribe
@@ -819,7 +820,7 @@ class AuthManager {
 
                         // Método verificado correctamente
                         resetMethodVerified = true;
-                        console.log('resetMethodVerified actualizado a:', resetMethodVerified);
+                        console.log('✅ Verificación exitosa, mostrando formulario de nueva contraseña');
 
                         // Mostrar campo de nueva contraseña
                         if (newPasswordGroup) {
@@ -996,7 +997,6 @@ class AuthManager {
         }
 
         // Estilos para inputs de recuperación
-        if (recoverPhoneInput) recoverPhoneInput.style.outline = 'none';
         if (newPasswordInput) newPasswordInput.style.outline = 'none';
         if (confirmNewPasswordInput) confirmNewPasswordInput.style.outline = 'none';
 
@@ -1037,8 +1037,7 @@ class AuthManager {
             const form = document.getElementById('login-form');
             const recoverPasswordForm = document.getElementById('recover-password-form');
             const subtitle = document.getElementById('login-subtitle');
-            const recoverPhoneInput = document.getElementById('recover-phone');
-            const newPasswordGroup = document.getElementById('new-password-group');
+                const newPasswordGroup = document.getElementById('new-password-group');
             const recoverErrorDiv = document.getElementById('recover-error');
             const recoverBtn = document.getElementById('recover-btn');
 
@@ -1060,10 +1059,6 @@ class AuthManager {
             if (subtitle) subtitle.textContent = 'Recuperar contraseña';
 
             // Resetear campos
-            if (recoverPhoneInput) {
-                recoverPhoneInput.disabled = false;
-                recoverPhoneInput.value = '';
-            }
 
             if (newPasswordGroup) newPasswordGroup.style.display = 'none';
             if (recoverErrorDiv) {
@@ -1084,9 +1079,9 @@ class AuthManager {
 
             // Enfocar input de teléfono
             setTimeout(() => {
-                if (recoverPhoneInput) {
-                    recoverPhoneInput.focus();
-                    recoverPhoneInput.select();
+                if (resetAdminPinInput) {
+                    resetAdminPinInput.focus();
+                    resetAdminPinInput.select();
                 }
             }, 150);
 

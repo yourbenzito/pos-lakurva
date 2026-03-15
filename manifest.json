@@ -1,10 +1,10 @@
 {
-  "name": "Minimarket La Kurva",
-  "short_name": "La Kurva",
-  "description": "Sistema de Ventas e Inventario Minimarket La Kurva",
-  "start_url": "/",
+  "name": "CajaFácil POS",
+  "short_name": "CajaFácil",
+  "description": "Sistema de Ventas e Inventario Cloud",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#1a1a2e",
+  "background_color": "#020617",
   "theme_color": "#2563eb",
   "orientation": "portrait-primary",
   "icons": [

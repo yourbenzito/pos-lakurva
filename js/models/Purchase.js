@@ -294,6 +294,28 @@ class Purchase {
         return await this._repository.findAll();
     }
 
+    /**
+     * C6: Obtener solo las compras más recientes para optimización de carga.
+     * @param {number} limit 
+     */
+    static async getLatest(limit = 50) {
+        if (db.mode === 'sqlite') {
+            return await ApiClient.get('purchases/list/latest', { limit });
+        }
+        return (await this.getAll()).slice(0, limit);
+    }
+
+    /**
+     * C6: Obtener resumen estadístico y de deudas directamente del servidor.
+     */
+    static async getStatsSummary() {
+        if (db.mode === 'sqlite') {
+            return await ApiClient.get('purchases/stats/summary');
+        }
+        // Fallback para IndexedDB si es necesario (aunque el modo forzado es SQLite)
+        return null;
+    }
+
     static async getBySupplier(supplierId) {
         return await this._repository.findBySupplierId(supplierId);
     }

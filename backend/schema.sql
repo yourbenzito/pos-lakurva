@@ -1,5 +1,6 @@
 -- SQLite Schema for POS Minimarket
 -- This matches the IndexedDB structure for seamless migration
+-- Fecha de actualización: 20:01
 
 CREATE TABLE IF NOT EXISTS businesses (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -11,7 +12,8 @@ CREATE TABLE IF NOT EXISTS businesses (
     config JSON,
     createdAt TEXT,
     isActive INTEGER DEFAULT 1,
-    plan TEXT DEFAULT 'basic'
+    plan TEXT DEFAULT 'basic',
+    accessCode TEXT
 );
 
 CREATE TABLE IF NOT EXISTS products (
@@ -98,6 +100,7 @@ CREATE TABLE IF NOT EXISTS sales (
     tax_amount REAL DEFAULT 0,
     commission_amount REAL DEFAULT 0,
     updatedAt TEXT,
+    createdBy INTEGER,
     updatedBy INTEGER
 );
 
@@ -181,7 +184,12 @@ CREATE TABLE IF NOT EXISTS purchases (
     dueDate TEXT,
     vatMode TEXT,
     items JSON,
-    status TEXT
+    status TEXT,
+    createdAt TEXT,
+    updatedAt TEXT,
+    createdBy INTEGER,
+    updatedBy INTEGER,
+    business_id INTEGER DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS expenses (
@@ -237,9 +245,15 @@ CREATE TABLE IF NOT EXISTS supplierPayments (
     supplierId INTEGER,
     purchaseId INTEGER,
     amount REAL,
-    paymentMethod TEXT,
+    method TEXT,
     date TEXT,
-    notes TEXT
+    reference TEXT,
+    notes TEXT,
+    createdAt TEXT,
+    updatedAt TEXT,
+    createdBy INTEGER,
+    updatedBy INTEGER,
+    business_id INTEGER DEFAULT 1
 );
 
 CREATE TABLE IF NOT EXISTS saleReturns (

@@ -2,6 +2,7 @@ const POSView = {
     currentSection: 'pos',
     lastScanTerm: null,
     lastScanAt: 0,
+    selectedDocType: 'boleta',
     async render() {
         const cashOpen = await posController.init();
 
@@ -61,6 +62,16 @@ const POSView = {
                 <!-- COLUMNA DERECHA: Resumen y Pago -->
                 <div style="display: flex; flex-direction: column; gap: 1rem; overflow: hidden; overflow-y: auto; padding-right: 0.5rem;">
                     
+                    <!-- Selector de Documento -->
+                    <div style="display: flex; gap: 0.5rem; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 1rem; border: 1px solid rgba(255,255,255,0.05);">
+                        <button id="docBoletaBtn" class="btn" style="flex: 1; border-radius: 0.75rem; border: 2px solid ${this.selectedDocType === 'boleta' ? '#3b82f6' : 'transparent'}; background: ${this.selectedDocType === 'boleta' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255,255,255,0.02)'}; color: ${this.selectedDocType === 'boleta' ? '#60a5fa' : 'rgba(255,255,255,0.3)'}; font-size: 0.9rem; font-weight: 700;" onclick="POSView.setDocType('boleta')">
+                            BOLETA
+                        </button>
+                        <button id="docInternoBtn" class="btn" style="flex: 1; border-radius: 0.75rem; border: 2px solid ${this.selectedDocType === 'sin_boleta' ? '#f59e0b' : 'transparent'}; background: ${this.selectedDocType === 'sin_boleta' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(255,255,255,0.02)'}; color: ${this.selectedDocType === 'sin_boleta' ? '#fbbf24' : 'rgba(255,255,255,0.3)'}; font-size: 0.9rem; font-weight: 700;" onclick="POSView.setDocType('sin_boleta')">
+                            INTERNO
+                        </button>
+                    </div>
+
                     <!-- Resumen del Total Gigante -->
                     <div style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.25) 100%); border: 1px solid rgba(16, 185, 129, 0.4); border-radius: 1.5rem; padding: 2rem 1.5rem; text-align: center; position: relative; overflow: hidden; box-shadow: 0 10px 30px -5px rgba(16, 185, 129, 0.2);">
                         <div style="font-size: 1rem; color: #6ee7b7; text-transform: uppercase; letter-spacing: 2px; font-weight: 600; margin-bottom: 0.5rem;">Total a Pagar</div>
@@ -229,11 +240,14 @@ const POSView = {
             }
         });
 
-        document.addEventListener('click', (e) => {
-            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+        const posCloseSearch = (e) => {
+            if (searchInput && searchResults && !searchInput.contains(e.target) && !searchResults.contains(e.target)) {
                 searchResults.style.display = 'none';
             }
-        });
+        };
+        document.removeEventListener('click', document._posCloseSearch);
+        document._posCloseSearch = posCloseSearch;
+        document.addEventListener('click', posCloseSearch);
 
         this.updateCart();
     },
@@ -450,6 +464,89 @@ const POSView = {
         this.updateCart();
     },
 
+    setDocType(type) {
+        this.selectedDocType = type;
+        this.updateCart();
+        this.updateDocTypeUI();
+    },
+
+    updateDocTypeUI() {
+        const docBoletaBtn = document.getElementById('docBoletaBtn');
+        const docInternoBtn = document.getElementById('docInternoBtn');
+        if (docBoletaBtn && docInternoBtn) {
+            const isBoleta = this.selectedDocType === 'boleta';
+            docBoletaBtn.style.borderColor = isBoleta ? '#3b82f6' : 'transparent';
+            docBoletaBtn.style.background = isBoleta ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255,255,255,0.02)';
+            docBoletaBtn.style.color = isBoleta ? '#60a5fa' : 'rgba(255,255,255,0.3)';
+            
+            docInternoBtn.style.borderColor = !isBoleta ? '#f59e0b' : 'transparent';
+            docInternoBtn.style.background = !isBoleta ? 'rgba(245, 158, 11, 0.25)' : 'rgba(255,255,255,0.02)';
+            docInternoBtn.style.color = !isBoleta ? '#fbbf24' : 'rgba(255,255,255,0.3)';
+        }
+    },
+
+    // Abrir Modal de Escáner Portátil
+    async openScanner() {
+        const content = `
+            <div style="width: 100%; max-width: 500px; margin: 0 auto; overflow: hidden; border-radius: 12px; background: #000;">
+                <div id="reader" style="width: 100%;"></div>
+            </div>
+            <div style="text-align: center; margin-top: 1rem; color: #94a3b8; font-size: 0.9rem;">
+                Apunta la cámara al código de barras
+            </div>
+        `;
+        const footer = `<button class="btn btn-secondary" onclick="POSView.closeScanner()">Cerrar Cámara</button>`;
+
+        showModal(content, { title: '📸 Escanear con Cámara', footer });
+
+        setTimeout(() => {
+            const html5QrCode = new Html5Qrcode("reader");
+            this.html5QrCode = html5QrCode;
+            const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+
+            html5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                async (decodedText) => {
+                    if (navigator.vibrate) navigator.vibrate(100);
+                    await this.handleBarcodeScan(decodedText);
+                    this.closeScanner();
+                },
+                (errorMessage) => { }
+            ).catch((err) => {
+                console.error("Error al iniciar cámara:", err);
+                showNotification("No se pudo acceder a la cámara o requiere HTTPS", 'error');
+                closeModal();
+            });
+        }, 300);
+    },
+
+    closeScanner() {
+        if (this.html5QrCode) {
+            this.html5QrCode.stop().then(() => {
+                this.html5QrCode = null;
+                closeModal();
+            }).catch(() => {
+                this.html5QrCode = null;
+                closeModal();
+            });
+        } else {
+            closeModal();
+        }
+    },
+
+    async handleBarcodeScan(term) {
+        const now = Date.now();
+        if (this.lastScanTerm === term && now - this.lastScanAt < 800) return;
+        this.lastScanTerm = term;
+        this.lastScanAt = now;
+
+        const result = await posController.searchProduct(term);
+        if (result.product) this.showProductModal(result.product);
+        else if (result.multiple) this.showProductSelection(result.products);
+        else showNotification('Producto no encontrado', 'warning');
+    },
+
     clearCart() {
         if (confirm('¿Limpiar todo el carrito?')) {
             posController.clearCart();
@@ -482,17 +579,22 @@ const POSView = {
         this.updateCart();
     },
 
-    async completeSale(method) {
+    async completeSale(paymentMethod) {
         const summary = posController.getCartSummary();
-        if (summary.items.length === 0) return;
-
-        if (method === 'cash') {
-            this.showCashPaymentModal(summary.total);
-        } else if (method === 'other') {
-            this.showTransferPaymentModal(summary.total);
-        } else {
+        if (summary.total === 0) {
             try {
-                const sale = await posController.completeSale(method);
+                const sale = await posController.completeSale(paymentMethod, false, null, this.selectedDocType);
+                this.updateCart();
+                this.showSaleReceipt(sale);
+            } catch (e) { showNotification(e.message, 'error'); }
+            return;
+        }
+
+        if (paymentMethod === 'cash') { this.showCashPaymentModal(summary.total); }
+        else if (paymentMethod === 'other') { this.showTransferPaymentModal(summary.total); }
+        else {
+            try {
+                const sale = await posController.completeSale(paymentMethod, false, null, this.selectedDocType);
                 this.updateCart();
                 this.showSaleReceipt(sale);
             } catch (e) { showNotification(e.message, 'error'); }
@@ -526,7 +628,7 @@ const POSView = {
         const total = posController.getCartSummary().total;
         const rec = parseFloat(document.getElementById('cashRec').value);
         try {
-            const sale = await posController.completeSale('cash');
+            const sale = await posController.completeSale('cash', false, null, this.selectedDocType);
             this.updateCart();
             closeModal();
             this.showSaleReceipt(sale, false, rec, rec - total);
@@ -561,7 +663,7 @@ const POSView = {
             transferBank: document.getElementById('tBank').value
         };
         try {
-            const sale = await posController.completeSale('other', false, details);
+            const sale = await posController.completeSale('other', false, details, this.selectedDocType);
             this.updateCart();
             closeModal();
             this.showSaleReceipt(sale);
@@ -601,7 +703,7 @@ const POSView = {
             other: parseFloat(document.getElementById('mOther').value) || 0
         };
         try {
-            const sale = await posController.completeSale('mixed', false, details);
+            const sale = await posController.completeSale('mixed', false, details, this.selectedDocType);
             this.updateCart();
             closeModal();
             this.showSaleReceipt(sale);
@@ -646,7 +748,7 @@ const POSView = {
         const abono = parseFloat(document.getElementById('pAbono').value) || 0;
         const details = abono > 0 ? { [document.getElementById('pMeth').value]: abono } : null;
         try {
-            const sale = await posController.completeSale('pending', true, details);
+            const sale = await posController.completeSale('pending', true, details, this.selectedDocType);
             this.updateCart();
             closeModal();
             this.showSaleReceipt(sale, true, abono > 0 ? abono : null);
@@ -706,29 +808,41 @@ const POSView = {
         posController.setCustomer(customer);
         const bal = await Customer.getAccountBalance(id);
         const debt = Math.max(0, bal.displayBalance || 0);
+        const credit = Math.max(0, -(bal.displayBalance || 0));
 
         document.getElementById('customerInfo').innerHTML = `
             <div style="background: rgba(59, 130, 246, 0.2); padding: 1rem; border-radius: 0.5rem; display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <strong>👤 ${customer.name}</strong>
                     ${debt > 0 ? `<div style="color: #f87171; font-size: 0.8rem;">Deuda: ${formatCLP(debt)}</div>` : ''}
+                    ${credit > 0 ? `<div style="color: #4ade80; font-size: 0.8rem;">A favor: ${formatCLP(credit)}</div>` : ''}
                 </div>
                 <button class="btn btn-sm" onclick="POSView.removeCustomer()">✕</button>
             </div>
         `;
         this.toggleFiarButton(true);
+        this.toggleCreditButton(credit > 0);
         closeModal();
     },
 
     removeCustomer() {
         posController.setCustomer(null);
+        posController.setCreditBalance(0);
         document.getElementById('customerInfo').innerHTML = `<button class="btn btn-outline-primary" style="width:100%;" onclick="POSView.selectCustomer()">👤 Seleccionar Cliente</button>`;
         this.toggleFiarButton(false);
+        this.toggleCreditButton(false);
+        this.updateCart();
     },
 
     toggleFiarButton(enable) {
         const btn = document.getElementById('fiarButton');
         if (btn) btn.disabled = !enable;
+    },
+
+    toggleCreditButton(enable) {
+        const btn = document.getElementById('useCreditButton');
+        if (btn) btn.style.display = enable ? 'block' : 'none';
+        if (!enable) posController.setCreditBalance(0);
     },
 
     startNewSale() {
@@ -781,5 +895,12 @@ const POSView = {
         posController.resumeSale(id);
         this.updateCart();
         closeModal();
+    },
+
+    destroy() {
+        // Limpiar timeouts y listeners globales
+        if (this._searchTimeout) clearTimeout(this._searchTimeout);
+        // Aquí podrías agregar remoción de listeners de teclado si los hay globales
+        console.log('POSView destroyed');
     }
 };

@@ -3,13 +3,22 @@ class Database {
         this.dbName = 'POSMinimarket';
         this.version = 21;
         this.db = null;
+        this.cache = {}; 
+        this.CACHE_TTL = 5 * 60 * 1000; // Caché de 5 minutos para máxima velocidad
+        this.cacheTimestamps = {}; // Control de tiempo para el caché: 20:10
 
         // Si accedemos por IP remota (ej: celular), forzamos SQLite. 
         // En localhost/Electron, usamos lo que diga localStorage (default indexeddb)
-        const isRemote = window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-        this.mode = localStorage.getItem('DB_MODE') || (isRemote ? 'sqlite' : 'indexeddb');
+        // Forzamos modo SQLite
+        localStorage.setItem('DB_MODE', 'sqlite');
+        this.mode = 'sqlite';
+        
+        // Si no hay business_id seteado, forzamos el 1 para ver los datos migrados
+        if (!localStorage.getItem('BUSINESS_ID')) {
+            localStorage.setItem('BUSINESS_ID', '1');
+        }
 
-        console.log(`🔌 Modo Base de Datos: ${this.mode.toUpperCase()} ${isRemote ? '(Auto-detectado)' : ''}`);
+        console.log(`🔌 Modo Base de Datos: ${this.mode.toUpperCase()}`);
     }
 
     async init() {
@@ -262,7 +271,16 @@ class Database {
         });
     }
 
+    clearCache(storeName) {
+        for (const key in this.cache) {
+            if (key.startsWith(storeName + '_')) {
+                delete this.cache[key];
+            }
+        }
+    }
+
     async add(storeName, data) {
+        this.clearCache(storeName);
         if (this.mode === 'sqlite') {
             const result = await window.ApiClient.post(storeName, data);
             // IMPORTANTE: Devolver solo el ID para mantener compatibilidad con IndexedDB
@@ -278,6 +296,7 @@ class Database {
     }
 
     async put(storeName, data) {
+        this.clearCache(storeName);
         if (this.mode === 'sqlite') {
             const pk = storeName === 'settings' ? 'key' : 'id';
             const id = data[pk];
@@ -296,7 +315,14 @@ class Database {
 
     async get(storeName, id) {
         if (this.mode === 'sqlite') {
-            return await window.ApiClient.get(`${storeName}/${id}`);
+            const cacheKey = `${storeName}_get_${id}`;
+            const now = Date.now();
+            if (this.cache[cacheKey] && (now - this.cache[cacheKey].timestamp < this.CACHE_TTL)) {
+                return this.cache[cacheKey].data ? { ...this.cache[cacheKey].data } : null;
+            }
+            const data = await window.ApiClient.get(`${storeName}/${id}`);
+            this.cache[cacheKey] = { data: data ? { ...data } : null, timestamp: now };
+            return data;
         }
         const tx = this.db.transaction(storeName, 'readonly');
         const store = tx.objectStore(storeName);
@@ -309,7 +335,15 @@ class Database {
 
     async getAll(storeName) {
         if (this.mode === 'sqlite') {
-            return await window.ApiClient.get(storeName);
+            const cacheKey = `${storeName}_all`;
+            const now = Date.now();
+            if (this.cache[cacheKey] && (now - this.cache[cacheKey].timestamp < this.CACHE_TTL)) {
+                return [...this.cache[cacheKey].data];
+            }
+            const data = await window.ApiClient.get(storeName);
+            const arrayData = Array.isArray(data) ? data : [];
+            this.cache[cacheKey] = { data: [...arrayData], timestamp: now };
+            return arrayData;
         }
         const tx = this.db.transaction(storeName, 'readonly');
         const store = tx.objectStore(storeName);
@@ -321,6 +355,7 @@ class Database {
     }
 
     async delete(storeName, id) {
+        this.clearCache(storeName);
         if (this.mode === 'sqlite') {
             return await window.ApiClient.delete(storeName, id);
         }
@@ -335,9 +370,17 @@ class Database {
 
     async getByIndex(storeName, indexName, value) {
         if (this.mode === 'sqlite') {
+            const cacheKey = `${storeName}_index_${indexName}_${value}`;
+            const now = Date.now();
+            if (this.cache[cacheKey] && (now - this.cache[cacheKey].timestamp < this.CACHE_TTL)) {
+                return [...this.cache[cacheKey].data];
+            }
             const params = {};
             params[indexName] = value;
-            return await window.ApiClient.get(storeName, params);
+            const data = await window.ApiClient.get(storeName, params);
+            const arrayData = Array.isArray(data) ? data : [];
+            this.cache[cacheKey] = { data: [...arrayData], timestamp: now };
+            return arrayData;
         }
         const tx = this.db.transaction(storeName, 'readonly');
         const store = tx.objectStore(storeName);
@@ -351,11 +394,15 @@ class Database {
 
     async getByIndexRange(storeName, indexName, lower, upper) {
         if (this.mode === 'sqlite') {
-            // Emulando rango en backend (simplificado: trae todo y filtra o por endpoint experto)
-            // Por ahora, traemos todo lo de ese store para no complicar el server
-            // NOTA: Esto se puede optimizar despues
-            const all = await this.getAll(storeName);
-            return all.filter(item => item[indexName] >= lower && item[indexName] <= upper);
+            const cacheKeyAll = `${storeName}_all`;
+            const now = Date.now();
+            if (this.cache[cacheKeyAll] && (now - this.cache[cacheKeyAll].timestamp < this.CACHE_TTL)) {
+                return this.cache[cacheKeyAll].data.filter(item => item[indexName] >= lower && item[indexName] <= upper);
+            }
+            // Fetch exactly the range from the API directly to save huge payloads
+            const filterParams = { index: indexName, lower: lower, upper: upper };
+            const data = await window.ApiClient.get(`${storeName}/range`, filterParams);
+            return Array.isArray(data) ? data : [];
         }
         const tx = this.db.transaction(storeName, 'readonly');
         const store = tx.objectStore(storeName);
@@ -374,6 +421,7 @@ class Database {
     }
 
     async clear(storeName) {
+        this.clearCache(storeName);
         if (this.mode === 'sqlite') {
             // No implementado por seguridad en API general
             return;
@@ -398,6 +446,46 @@ class Database {
             request.onsuccess = () => resolve(request.result);
             request.onerror = () => reject(request.error);
         });
+    }
+
+    async wipeAll() {
+        if (this.mode === 'sqlite') {
+            console.log('🚮 Iniciando vaciado total de base de datos (SQLite)...');
+            try {
+                // Notificamos al servidor del reseteo
+                await window.ApiClient.post('system/factory-reset');
+                
+                // Limpiamos rastro local
+                localStorage.clear();
+                sessionStorage.clear();
+                return true;
+            } catch (error) {
+                console.error('❌ Error en factory-reset:', error);
+                // Si falla el endpoint, intentamos al menos limpiar el localStorage local por si acaso
+                throw new Error('Error al conectar con el servidor para el vaciado.');
+            }
+        } else {
+            console.log('🚮 Iniciando vaciado total de base de datos (IndexedDB)...');
+            return new Promise((resolve, reject) => {
+                // Cerrar conexión actual antes de borrar
+                if (this.db) {
+                    this.db.close();
+                }
+                
+                const request = indexedDB.deleteDatabase(this.dbName);
+                request.onsuccess = () => {
+                    console.log('✅ Base de datos local eliminada');
+                    localStorage.clear();
+                    sessionStorage.clear();
+                    resolve(true);
+                };
+                request.onerror = () => reject(new Error('Error al eliminar base de datos local'));
+                request.onblocked = () => {
+                    console.warn('⚠️ El borrado está bloqueado por otras pestañas abiertas');
+                    reject(new Error('Borrado bloqueado: Cierra todas las ventanas de la aplicación e intenta de nuevo.'));
+                };
+            });
+        }
     }
 }
 

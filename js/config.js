@@ -1,10 +1,10 @@
 const API_CONFIG = {
     get BASE_URL() {
-        // En la nube (Railway/Render) no usamos puerto 3000 manual
+        // En la nube (cajafacil.cl) con HTTPS o cualquier dominio externo
         if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
             return `${window.location.protocol}//${window.location.host}`;
         }
-        // En local, forzamos el puerto 3000 del backend
+        // En local, para el desarrollo en Electron o Navegador local
         return 'http://localhost:3000';
     },
 

@@ -30,9 +30,9 @@ class ReportController {
         const endOfDay = new Date(date);
         endOfDay.setHours(23, 59, 59, 999);
 
-        const sales = await Sale.getByDateRange(startOfDay, endOfDay);
-        const returns = await SaleReturn.getByDateRange(startOfDay, endOfDay);
-        const totalReturned = returns.reduce((sum, r) => sum + (parseFloat(r.totalReturned) || 0), 0);
+        const sales = await Sale.getByDateRange(startOfDay, endOfDay) || [];
+        const returns = await SaleReturn.getByDateRange(startOfDay, endOfDay) || [];
+        const totalReturned = Array.isArray(returns) ? returns.reduce((sum, r) => sum + (parseFloat(r.totalReturned) || 0), 0) : 0;
 
         let totalAmount = 0;
         let totalNeto = 0;

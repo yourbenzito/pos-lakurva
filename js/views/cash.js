@@ -33,8 +33,8 @@ const CashView = {
     renderOpenCashForm(history) {
         return `
             <div class="view-header">
-                <h1>Control de Caja</h1>
-                <p>Apertura y cierre de caja</p>
+                <h1 style="color: #111827;">Control de Caja</h1>
+                <p style="color: #4b5563;">Apertura y cierre de caja</p>
             </div>
             
             <div class="grid grid-2 cash-open-grid">
@@ -239,18 +239,18 @@ const CashView = {
                 <div style="display: flex; justify-content: space-between; align-items: start; gap: 2rem;">
                     <div style="flex: 1;">
                         <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
-                            <h1 style="margin:0;">Control de Caja</h1>
+                            <h1 style="margin:0; color: #111827;">Control de Caja</h1>
                             <span class="badge badge-success" style="font-size: 0.9rem; padding: 0.4rem 0.8rem;">Caja Abierta #${cashRegister.id}</span>
                         </div>
-                        <p style="margin:0; opacity: 0.8;">
-                            Desde ${formatDateTime(cashRegister.openDate)} • <span style="color: #6ee7b7; font-weight: 600;">${durationDisplay}</span>
+                        <p style="margin:0; color: #4b5563;">
+                            Desde ${formatDateTime(cashRegister.openDate)} • <span style="color: #059669; font-weight: 600;">${durationDisplay}</span>
                         </p>
                     </div>
                     <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: flex-end;">
-                        <button class="btn btn-secondary" onclick="CashView.showAllCashRegistersHistory()" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+                        <button class="btn btn-secondary" onclick="CashView.showAllCashRegistersHistory()">
                             📚 Historial de Todas las Cajas
                         </button>
-                        <button class="btn btn-secondary" onclick="CashView.showCashHistory(${cashRegister.id})" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);">
+                        <button class="btn btn-secondary" onclick="CashView.showCashHistory(${cashRegister.id})">
                             📋 Historial de Esta Sesión
                         </button>
                     </div>
@@ -274,43 +274,43 @@ const CashView = {
 
             <div class="grid grid-2 animate-fade-in" style="gap: 1.5rem; margin-bottom: 2rem;">
                 <!-- RESUMEN DEL DÍA -->
-                <div class="card glass-panel" style="padding: 1.5rem; border-top: 4px solid var(--primary);">
-                    <h3 style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+                <div class="card" style="padding: 1.5rem; border-top: 4px solid #4f46e5; background: #ffffff; border: 1.5px solid #d1d5db; border-top: 4px solid #4f46e5; border-radius: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+                    <h3 style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; color: #111827; font-size: 1.05rem;">
                         <span>📅</span> Resumen del Día (${todayKey})
                     </h3>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <div class="stat-card-minimal" style="background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.2); padding: 1.25rem; border-radius: 0.75rem; text-align: center; cursor: pointer; transition: transform 0.2s;" onclick="CashView.showVentasHoy()">
-                            <span style="font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Ventas Hoy</span>
-                            <div style="font-size: 1.75rem; font-weight: 800; color: #60a5fa;">${formatCLP(totalTodaySales)}</div>
-                            <small style="color: #3b82f6;">${todayDetail.sales.length} ventas ejecutadas</small>
+                        <div style="background: #eff6ff; border: 1.5px solid #bfdbfe; padding: 1.25rem; border-radius: 0.75rem; text-align: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='scale(1.02)';this.style.boxShadow='0 4px 12px rgba(59,130,246,0.15)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='none'" onclick="CashView.showVentasHoy()">
+                            <span style="font-size: 0.75rem; color: #1d4ed8; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 0.4rem;">Ventas Hoy</span>
+                            <div style="font-size: 1.65rem; font-weight: 800; color: #1d4ed8;">${formatCLP(totalTodaySales)}</div>
+                            <small style="color: #3b82f6; font-weight: 600;">${todayDetail.sales.length} ventas ejecutadas</small>
                         </div>
-                        <div class="stat-card-minimal" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); padding: 1.25rem; border-radius: 0.75rem; text-align: center; cursor: pointer; transition: transform 0.2s;" onclick="CashView.showDeudasHoy()">
-                            <span style="font-size: 0.8rem; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Deudas del Día</span>
-                            <div style="font-size: 1.75rem; font-weight: 800; color: #f87171;">${formatCLP(totalTodayDeudas)}</div>
-                            <small style="color: #ef4444;">${todayDetail.creditSales.length} fiados hoy</small>
+                        <div style="background: #fef2f2; border: 1.5px solid #fecaca; padding: 1.25rem; border-radius: 0.75rem; text-align: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;" onmouseover="this.style.transform='scale(1.02)';this.style.boxShadow='0 4px 12px rgba(239,68,68,0.15)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='none'" onclick="CashView.showDeudasHoy()">
+                            <span style="font-size: 0.75rem; color: #dc2626; text-transform: uppercase; font-weight: 700; display: block; margin-bottom: 0.4rem;">Deudas del Día</span>
+                            <div style="font-size: 1.65rem; font-weight: 800; color: #dc2626;">${formatCLP(totalTodayDeudas)}</div>
+                            <small style="color: #ef4444; font-weight: 600;">${todayDetail.creditSales.length} fiados hoy</small>
                         </div>
                     </div>
                 </div>
 
                 <!-- EFECTIVO ESPERADO DETALLADO -->
-                <div class="card glass-panel" style="padding: 1.5rem; border-top: 4px solid #10b981;">
-                    <h3 style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem;">
+                <div class="card" style="padding: 1.5rem; background: #ffffff; border: 1.5px solid #d1d5db; border-top: 4px solid #10b981; border-radius: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+                    <h3 style="margin-bottom: 1.25rem; display: flex; align-items: center; gap: 0.5rem; color: #111827; font-size: 1.05rem;">
                         <span>💸</span> Resumen de Efectivo
                     </h3>
                     <div style="display: flex; flex-direction: column; gap: 0.75rem; justify-content: center; height: 100%;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                            <span style="color: #94a3b8; font-weight: 600;">💰 Monto Inicial:</span>
-                            <span style="font-weight: 800; font-size: 1.1rem;">${formatCLP(summary.initialAmount)}</span>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb;">
+                            <span style="color: #4b5563; font-weight: 600;">💰 Monto Inicial:</span>
+                            <span style="font-weight: 800; font-size: 1.1rem; color: #111827;">${formatCLP(summary.initialAmount)}</span>
                         </div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); cursor: pointer;" onclick="CashView.showPaymentMethods()" title="Ver desglose de métodos de pago">
-                            <span style="color: #94a3b8; font-weight: 600;">🔄 Ingresos Netos de Efectivo:</span>
-                            <span style="font-weight: 800; font-size: 1.1rem; color: #6ee7b7;">+${formatCLP(summary.cashForDisplay)}</span>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.5rem; border-bottom: 1px solid #e5e7eb; cursor: pointer;" onclick="CashView.showPaymentMethods()" title="Ver desglose de métodos de pago">
+                            <span style="color: #4b5563; font-weight: 600;">🔄 Ingresos Netos de Efectivo:</span>
+                            <span style="font-weight: 800; font-size: 1.1rem; color: #059669;">+${formatCLP(summary.cashForDisplay)}</span>
                         </div>
                         <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem;">
-                            <span style="color: #fff; font-weight: 800; font-size: 1.1rem;">Efectivo Esperado Real:</span>
-                            <span style="font-weight: 900; font-size: 1.8rem; color: #34d399; text-shadow: 0 0 10px rgba(52, 211, 153, 0.3);">${formatCLP(summary.expectedCash)}</span>
+                            <span style="color: #111827; font-weight: 800; font-size: 1.05rem;">Efectivo Esperado Real:</span>
+                            <span style="font-weight: 900; font-size: 1.75rem; color: #059669;">${formatCLP(summary.expectedCash)}</span>
                         </div>
-                        <button class="btn btn-sm" style="margin-top: 0.5rem; align-self: center; background: rgba(16, 185, 129, 0.1); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.2);" onclick="CashView.showPaymentMethods()">
+                        <button class="btn btn-sm" style="margin-top: 0.5rem; align-self: center; background: #ecfdf5; color: #059669; border: 1.5px solid #6ee7b7; font-weight: 600;" onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='#ecfdf5'" onclick="CashView.showPaymentMethods()">
                             📊 Ver Todos los Métodos de Pago
                         </button>
                     </div>
@@ -398,21 +398,22 @@ const CashView = {
 
             <style>
                 .module-card {
-                    background: rgba(31, 41, 55, 0.4);
-                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    background: #ffffff;
+                    border: 1.5px solid #e5e7eb;
                     border-radius: 1rem;
                     padding: 1.25rem;
                     cursor: pointer;
-                    transition: all 0.3s ease;
+                    transition: all 0.25s ease;
                     display: flex;
                     flex-direction: column;
                     gap: 0.75rem;
+                    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
                 }
                 .module-card:hover {
-                    background: rgba(31, 41, 55, 0.6);
-                    border-color: rgba(255, 255, 255, 0.15);
+                    background: #f9fafb;
+                    border-color: #9ca3af;
                     transform: translateY(-4px);
-                    box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+                    box-shadow: 0 10px 24px rgba(0,0,0,0.1);
                 }
                 .module-icon {
                     width: 40px;
@@ -425,29 +426,25 @@ const CashView = {
                 }
                 .module-info .label {
                     display: block;
-                    font-size: 0.8rem;
-                    color: #94a3b8;
+                    font-size: 0.78rem;
+                    color: #6b7280;
                     text-transform: uppercase;
                     letter-spacing: 0.5px;
-                    font-weight: 600;
+                    font-weight: 700;
                     margin-bottom: 0.2rem;
                 }
                 .module-info .val {
                     display: block;
                     font-size: 1.4rem;
                     font-weight: 800;
-                    color: #fff;
+                    color: #111827;
                 }
                 .module-footer {
                     font-size: 0.75rem;
-                    color: #64748b;
-                    border-top: 1px solid rgba(255,255,255,0.05);
+                    color: #9ca3af;
+                    border-top: 1px solid #f3f4f6;
                     padding-top: 0.5rem;
                     margin-top: 0.25rem;
-                }
-                .stat-card-minimal:hover {
-                    transform: scale(1.03);
-                    filter: brightness(1.2);
                 }
             </style>
         `;
@@ -1444,9 +1441,16 @@ const CashView = {
                                 </div>
                             </div>
                         ` : ''}
-                        <button class="btn btn-primary btn-block" onclick="CashView.showCashHistory(${register.id}); closeModal();">
-                            📋 Ver Historial Completo de Esta Caja
-                        </button>
+                        <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                            <button class="btn btn-primary" style="flex: 2;" onclick="CashView.showCashHistory(${register.id}); closeModal();">
+                                📋 Ver Historial Completo
+                            </button>
+                            ${register.status === 'closed' ? `
+                                <button class="btn btn-warning" style="flex: 1;" onclick="CashView.editClosedCash(${register.id})">
+                                    ✏️ Editar
+                                </button>
+                            ` : ''}
+                        </div>
                     </div>
                 </div>
             `;
@@ -1517,21 +1521,33 @@ const CashView = {
         const totalSalesSinceOpen = dailyBreakdown.reduce((sum, day) => sum + (day.sales.total || 0), 0);
         const totalSalesAmount = summary.totalSalesAmount ?? totalSalesSinceOpen;
 
-        const methodRows = paymentMethods.map(method => `
-            <div class="close-cash-method-row">
-                <span class="close-cash-method-label">${methodLabels[method]}</span>
-                <span class="close-cash-method-expected" id="closeExpected-${method}">${formatCLP(expectedPayments[method])}</span>
-                <input type="number"
-                       id="closeMethod-${method}"
-                       class="form-control close-cash-method-input"
-                       min="0"
-                       step="1"
-                       placeholder="0"
-                       value=""
-                       title="Ingrese el monto real contado para ${methodLabels[method]}">
-                <span class="close-cash-method-diff" id="closeDifference-${method}"></span>
-            </div>
-        `).join('');
+        const methodRows = paymentMethods.map((method, index) => {
+            const isLast = index === paymentMethods.length - 1;
+            const nextMethod = isLast ? null : paymentMethods[index + 1];
+            
+            return `
+                <div class="close-cash-method-row">
+                    <span class="close-cash-method-label">${methodLabels[method]}</span>
+                    <span class="close-cash-method-expected" id="closeExpected-${method}">${formatCLP(expectedPayments[method])}</span>
+                    <input type="number"
+                           id="closeMethod-${method}"
+                           class="form-control close-cash-method-input"
+                           min="0"
+                           step="1"
+                           placeholder="0"
+                           value=""
+                           onkeydown="if(event.key === 'Enter') { 
+                               event.preventDefault(); 
+                               event.stopPropagation();
+                               const next = document.getElementById('closeMethod-${nextMethod}'); 
+                               if(next) next.focus(); 
+                               else document.querySelector('.btn-close-cash-final').focus();
+                           }"
+                           title="Ingrese el monto real contado para ${methodLabels[method]}">
+                    <span class="close-cash-method-diff" id="closeDifference-${method}"></span>
+                </div>
+            `;
+        }).join('');
 
         const totalRow = `
             <div class="close-cash-method-row close-cash-total-row">
@@ -1578,7 +1594,7 @@ const CashView = {
 
         const footer = `
             <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
-            <button type="button" class="btn btn-danger" onclick="CashView.closeCash(${openCash.id})">Cerrar Caja</button>
+            <button type="button" class="btn btn-danger btn-close-cash-final" onclick="CashView.closeCash(${openCash.id})">Cerrar Caja</button>
         `;
 
         showModal(content, { title: 'Cerrar Caja', footer, width: '900px' });
@@ -1777,4 +1793,178 @@ const CashView = {
             showNotification(error.message, 'error');
         }
     },
+
+    async editClosedCash(id) {
+        try {
+            const register = await CashRegister.getById(id);
+            if (!register) throw new Error('Caja no encontrada');
+            const summary = await CashRegister.getSummary(id);
+            const dailyBreakdown = await CashController.getDailySales(id);
+
+            const paymentMethods = ['cash', 'card_qr', 'other'];
+            const methodLabels = {
+                cash: 'Efectivo esperado',
+                card_qr: 'Tarjetas y QR esperados',
+                other: 'Transferencia / Otro esperado'
+            };
+
+            const expectedPayments = {
+                cash: summary.expectedCash || 0,
+                card_qr: (summary.paymentSummary?.card || 0) + (summary.paymentSummary?.qr || 0),
+                other: summary.paymentSummary?.other || 0
+            };
+
+            const expectedTotal = Object.values(expectedPayments).reduce((sum, value) => sum + (parseFloat(value) || 0), 0);
+            
+            // Reconstruir montos contados anteriormente si es posible
+            // Si no tenemos el desglose, el finalAmount original es lo que pusimos en Cash
+            const lastCounted = {
+                cash: register.finalAmount || 0,
+                card_qr: expectedPayments.card_qr, // Asumimos que cuadraba si no tenemos el dato
+                other: expectedPayments.other
+            };
+
+            const methodRows = paymentMethods.map((method, index) => {
+                const isLast = index === paymentMethods.length - 1;
+                const nextMethod = isLast ? null : paymentMethods[index + 1];
+                
+                return `
+                    <div class="close-cash-method-row">
+                        <span class="close-cash-method-label">${methodLabels[method]}</span>
+                        <span class="close-cash-method-expected" id="editExpected-${method}">${formatCLP(expectedPayments[method])}</span>
+                        <input type="number"
+                               id="editMethod-${method}"
+                               class="form-control close-cash-method-input"
+                               min="0"
+                               step="1"
+                               placeholder="0"
+                               value="${lastCounted[method] || 0}"
+                               onkeydown="if(event.key === 'Enter') { 
+                                   event.preventDefault(); 
+                                   event.stopPropagation();
+                                   const next = document.getElementById('editMethod-${nextMethod}'); 
+                                   if(next) next.focus(); 
+                                   else document.querySelector('.btn-save-edit-final').focus();
+                               }"
+                               title="Ingrese el monto real contado para ${methodLabels[method]}">
+                        <span class="close-cash-method-diff" id="editDifference-${method}"></span>
+                    </div>
+                `;
+            }).join('');
+
+            const content = `
+                <div class="close-cash-grid">
+                    <div class="close-cash-reconcile" style="width: 100%;">
+                        <h4>Editar Cuadratura - Caja #${id}</h4>
+                        <p class="close-cash-reconcile-hint">Modifique los montos contados para corregir errores de ingreso.</p>
+                        ${methodRows}
+                        <div class="close-cash-method-row close-cash-total-row">
+                            <span class="close-cash-method-label"><strong>Total</strong></span>
+                            <span class="close-cash-method-expected" id="editExpectedTotal"><strong>${formatCLP(expectedTotal)}</strong></span>
+                            <span class="close-cash-method-total-counted" id="editCountedTotal" style="font-weight: bold; text-align: right; padding-right: 1.5rem;">${formatCLP(Object.values(lastCounted).reduce((a, b) => a + b, 0))}</span>
+                            <span class="close-cash-method-diff" id="editDifferenceTotal"></span>
+                        </div>
+                        <div class="close-cash-difference-summary" id="editCashDifferenceSummary"></div>
+                    </div>
+                </div>
+                <input type="hidden" id="editFinalAmount" value="${lastCounted.cash}">
+            `;
+
+            const footer = `
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                <button type="button" class="btn btn-warning btn-save-edit-final" onclick="CashView.updateClosedCash(${id})">Guardar Cambios</button>
+            `;
+
+            showModal(content, { title: 'Editar Cierre de Caja', footer, width: '600px' });
+
+            setTimeout(() => {
+                const updateEditDifferences = () => {
+                    const listEl = document.getElementById('editCashDifferenceSummary');
+                    const totalDiffEl = document.getElementById('editDifferenceTotal');
+                    const finalInput = document.getElementById('editFinalAmount');
+                    
+                    const countedTotals = paymentMethods.reduce((acc, method) => {
+                        const input = document.getElementById(`editMethod-${method}`);
+                        acc[method] = parseFloat(input?.value) || 0;
+                        return acc;
+                    }, {});
+
+                    const countedTotal = paymentMethods.reduce((sum, method) => sum + countedTotals[method], 0);
+                    const totalDifference = paymentMethods.reduce((sum, method) => sum + (countedTotals[method] - (expectedPayments[method] || 0)), 0);
+                    
+                    if (finalInput) finalInput.value = countedTotals['cash'];
+                    const countedTotalEl = document.getElementById('editCountedTotal');
+                    if (countedTotalEl) countedTotalEl.textContent = formatCLP(countedTotal);
+
+                    paymentMethods.forEach(method => {
+                        const diffEl = document.getElementById(`editDifference-${method}`);
+                        const diff = countedTotals[method] - (expectedPayments[method] || 0);
+                        if (diffEl) {
+                            if (diff === 0) {
+                                diffEl.textContent = 'Cuadra';
+                                diffEl.classList.remove('text-success', 'text-danger');
+                            } else {
+                                const label = diff > 0 ? 'Sobrante' : 'Faltante';
+                                diffEl.textContent = `${label} ${formatCLP(Math.abs(diff))}`;
+                                diffEl.classList.toggle('text-success', diff > 0);
+                                diffEl.classList.toggle('text-danger', diff < 0);
+                            }
+                        }
+                    });
+
+                    if (totalDiffEl) {
+                        const label = totalDifference === 0 ? 'Cuadra perfecto' : (totalDifference > 0 ? 'Sobrante' : 'Faltante');
+                        totalDiffEl.textContent = totalDifference === 0 ? label : `${label}: ${formatCLP(Math.abs(totalDifference))}`;
+                        totalDiffEl.classList.toggle('text-success', totalDifference > 0);
+                        totalDiffEl.classList.toggle('text-danger', totalDifference < 0);
+                    }
+
+                    if (listEl) {
+                        listEl.innerHTML = totalDifference === 0 
+                            ? `<div class="close-cash-difference-success">Cuadra perfecto • Total contado: ${formatCLP(countedTotal)}</div>`
+                            : `<div class="close-cash-difference-alert"><strong>${totalDifference > 0 ? 'Sobrante' : 'Faltante'} total: ${formatCLP(Math.abs(totalDifference))}</strong></div>`;
+                    }
+                };
+
+                paymentMethods.forEach(method => {
+                    document.getElementById(`editMethod-${method}`)?.addEventListener('input', updateEditDifferences);
+                });
+                updateEditDifferences();
+            }, 0);
+
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    },
+
+    async updateClosedCash(id) {
+        const finalAmount = parseFloat(document.getElementById('editFinalAmount').value);
+        
+        try {
+            const register = await CashRegister.getById(id);
+            const summary = await CashRegister.getSummary(id);
+            
+            // Recalcular diferencia
+            const difference = finalAmount - summary.expectedCash;
+            
+            const updated = {
+                ...register,
+                finalAmount: finalAmount,
+                difference: difference,
+                updatedAt: new Date().toISOString()
+            };
+            
+            await CashRegister._repository.replace(updated);
+            showNotification('Registro de caja actualizado correctamente', 'success');
+            closeModal();
+            // Recargar el historial si el modal de historial está abierto
+            if (document.querySelector('.cash-history-modal')) {
+                this.showAllCashRegistersHistory();
+            } else {
+                app.navigate('cash');
+            }
+        } catch (error) {
+            showNotification(error.message, 'error');
+        }
+    }
 };

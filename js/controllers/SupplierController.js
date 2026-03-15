@@ -136,6 +136,15 @@ class SupplierController {
                 for (const [pid, o] of productOps) {
                     productOpsObj[pid] = o;
                 }
+
+                // C6 FIX: Recalcular paidAmount y status basado en pagos REALES antes de actualizar
+                const registeredPaid = await SupplierPayment.getTotalPaidForPurchase(purchaseId);
+                const legacyPaid = parseFloat(old.paidAmount) || 0;
+                const effectivePaid = Math.max(registeredPaid, legacyPaid);
+                
+                data.paidAmount = effectivePaid;
+                data.status = effectivePaid >= (parseFloat(data.total) || 0) - 0.01 ? 'paid' : 'pending';
+
                 const result = await ApiClient.put(`complex/purchase/${purchaseId}`, {
                     purchaseData: data,
                     productOps: productOpsObj
@@ -159,9 +168,17 @@ class SupplierController {
 
                 // Update purchase record within transaction
                 const getPurchaseReq = purchaseStore.get(purchaseId);
-                getPurchaseReq.onsuccess = () => {
+                getPurchaseReq.onsuccess = async () => {
                     const existingPurchase = getPurchaseReq.result;
                     if (!existingPurchase) { tx.abort(); return; }
+
+                    // C6 FIX: Sincronizar paidAmount con pagos reales
+                    const registeredPaid = await SupplierPayment.getTotalPaidForPurchase(purchaseId);
+                    const effectivePaid = Math.max(registeredPaid, parseFloat(existingPurchase.paidAmount) || 0);
+                    
+                    data.paidAmount = effectivePaid;
+                    data.status = effectivePaid >= (parseFloat(data.total) || 0) - 0.01 ? 'paid' : 'pending';
+
                     purchaseStore.put({
                         ...existingPurchase,
                         ...data,

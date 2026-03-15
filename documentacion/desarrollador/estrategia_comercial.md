@@ -57,7 +57,7 @@ Este documento contiene información estratégica sobre cómo vender, qué compa
 
 ### ✅ Documentos a Compartir
 
-1. **README-CLIENTE.md** - Manual de usuario completo
+1. **../cliente/manual_usuario.md** - Manual de usuario completo
 2. **Ejecutable instalable** - El .exe listo para instalar
 3. **Guía rápida de instalación** - Pasos básicos
 4. **Ejemplos de uso** - Casos de uso comunes
@@ -86,7 +86,7 @@ Este documento contiene información estratégica sobre cómo vender, qué compa
 ### ❌ Información Confidencial
 
 1. **Código fuente completo** - Solo si vende el proyecto completo
-2. **README-TECNICO.md** - Documentación técnica detallada
+2. **guia_tecnica.md** - Documentación técnica detallada
 3. **Estructura interna del código** - Carpetas, archivos, organización
 4. **Problemas conocidos o bugs** - A menos que afecten al cliente
 5. **Costos de desarrollo** - Mantener confidencial
@@ -322,7 +322,7 @@ Este documento contiene información estratégica sobre cómo vender, qué compa
 ### Antes de la Venta
 
 - [ ] Demostración funcional del sistema
-- [ ] README-CLIENTE.md preparado
+- [ ] Manual de usuario preparado (../cliente/manual_usuario.md)
 - [ ] Ejecutable listo para instalar
 - [ ] Casos de uso preparados
 - [ ] Precio definido
@@ -340,7 +340,7 @@ Este documento contiene información estratégica sobre cómo vender, qué compa
 - [ ] Instalación del sistema
 - [ ] Configuración inicial
 - [ ] Capacitación básica
-- [ ] Entrega de documentación (README-CLIENTE.md)
+- [ ] Entrega de documentación (Manual de Usuario)
 - [ ] Establecer canal de soporte
 
 ---
@@ -501,7 +501,7 @@ Usuario → Vista → Controller → Service → Model → Repository → Indexe
 ### Información que PUEDES Compartir
 
 1. **Funcionalidades** - Todas las características visibles
-2. **Manual de usuario** - README-CLIENTE.md completo
+2. **Manual de usuario** - manual_usuario.md completo
 3. **Casos de uso** - Ejemplos de cómo se usa
 4. **Beneficios** - Todos los beneficios del sistema
 5. **Soporte** - Información de contacto y niveles
@@ -536,7 +536,7 @@ Usuario → Vista → Controller → Service → Model → Repository → Indexe
 - [ ] Cambiar contraseña de admin
 - [ ] Configurar usuario inicial
 - [ ] Probar todas las funcionalidades
-- [ ] Preparar README-CLIENTE.md
+- [ ] Preparar Manual de Usuario (../cliente/manual_usuario.md)
 - [ ] Crear backup inicial
 - [ ] Documentar configuración específica del cliente
 - [ ] Establecer canal de soporte

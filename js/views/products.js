@@ -20,7 +20,16 @@ const ProductsView = {
 
     async render() {
         const products = await Product.getAll();
-        this.productSuppliers = await this.getLastSuppliers();
+        // Carga diferida de proveedores para no bloquear el renderizado inicial
+        if (Object.keys(this.productSuppliers).length === 0) {
+            this.getLastSuppliers().then(suppliers => {
+                this.productSuppliers = suppliers;
+                // Si el usuario sigue en la vista de productos, refrescamos solo las tarjetas
+                if (app.currentView === 'products') {
+                    this.updateSupplierLabels();
+                }
+            });
+        }
 
         let contentHtml = '';
         if (this.selectedCategory) {
@@ -66,7 +75,7 @@ const ProductsView = {
                 </div>
             </div>
             
-            <div class="card glass-panel pos-panel">
+            <div class="card" style="background: #ffffff; border: 1.5px solid #e5e7eb;">
                 <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center;">
                     <div class="form-group pos-section" style="flex: 1; margin-bottom: 0;">
                         <input type="text" id="searchProducts" class="form-control" placeholder="Buscar productos...">
@@ -164,30 +173,30 @@ const ProductsView = {
                 ${categories.map(cat => {
             const s = stats[cat] || { total: 0, low: 0, out: 0 };
             return `
-                    <div class="stat-card" 
-                         style="padding: 0; border-radius: 1.5rem; background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(255,255,255,0.05); text-align: center; overflow: hidden; display: flex; flex-direction: column; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);"
-                         onmouseover="this.style.transform='translateY(-6px)'; this.style.borderColor='rgba(59, 130, 246, 0.4)'; " 
-                         onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(255,255,255,0.05)';">
+                    <div
+                         style="padding: 0; border-radius: 1.25rem; background: #ffffff; border: 1.5px solid #e5e7eb; text-align: center; overflow: hidden; display: flex; flex-direction: column; transition: transform 0.25s ease, box-shadow 0.25s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.05);"
+                         onmouseover="this.style.transform='translateY(-6px)'; this.style.boxShadow='0 12px 28px rgba(0,0,0,0.1)'; this.style.borderColor='#9ca3af';" 
+                         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.05)'; this.style.borderColor='#e5e7eb';">
                         
                         <div style="padding: 1.5rem; cursor: pointer; flex: 1;" onclick="ProductsView.filterByCategory('${cat}')">
-                            <div style="font-size: 2.75rem; margin-bottom: 0.5rem; filter: drop-shadow(0 8px 12px rgba(0,0,0,0.3));">
+                            <div style="font-size: 2.75rem; margin-bottom: 0.5rem;">
                                 ${this.getCategoryIcon(cat)}
                             </div>
-                            <h3 style="margin: 0.25rem 0; font-size: 1.15rem; font-weight: 800; color: #fff; letter-spacing: 0.5px; text-transform: uppercase;">${cat}</h3>
-                            <p style="color: #60a5fa; font-weight: 800; font-size: 0.9rem; margin-bottom: 0;">${s.total} PRODUCTOS</p>
+                            <h3 style="margin: 0.25rem 0; font-size: 1.1rem; font-weight: 800; color: #111827; letter-spacing: 0.5px; text-transform: uppercase;">${cat}</h3>
+                            <p style="color: #6366f1; font-weight: 700; font-size: 0.9rem; margin-bottom: 0;">${s.total} PRODUCTOS</p>
                         </div>
                         
-                        <div style="display: flex; height: 65px; border-top: 1px solid rgba(255,255,255,0.05);">
-                            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: ${s.out > 0 ? 'rgba(239, 68, 68, 0.1)' : 'transparent'}; cursor: ${s.out > 0 ? 'pointer' : 'default'}; border-right: 1px solid rgba(255,255,255,0.05); transition: background 0.2s;" 
-                                 ${s.out > 0 ? `onclick="ProductsView.filterByCategoryWithStock('${cat}', 'out')" onmouseover="this.style.background='rgba(239, 68, 68, 0.2)'" onmouseout="this.style.background='rgba(239, 68, 68, 0.1)'"` : ''}>
-                                <div style="font-size: 1rem; color: ${s.out > 0 ? '#f87171' : '#475569'}; font-weight: 900;">${s.out}</div>
-                                <div style="font-size: 0.6rem; color: ${s.out > 0 ? '#fca5a5' : '#475569'}; font-weight: 800; text-transform: uppercase;">SIN STOCK</div>
+                        <div style="display: flex; height: 60px; border-top: 1.5px solid #f3f4f6;">
+                            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: ${s.out > 0 ? '#fef2f2' : '#f9fafb'}; cursor: ${s.out > 0 ? 'pointer' : 'default'}; border-right: 1px solid #f3f4f6; transition: background 0.2s;" 
+                                 ${s.out > 0 ? `onclick="ProductsView.filterByCategoryWithStock('${cat}', 'out')" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'"` : ''}>
+                                <div style="font-size: 1rem; color: ${s.out > 0 ? '#dc2626' : '#9ca3af'}; font-weight: 800;">${s.out}</div>
+                                <div style="font-size: 0.6rem; color: ${s.out > 0 ? '#ef4444' : '#9ca3af'}; font-weight: 700; text-transform: uppercase;">SIN STOCK</div>
                             </div>
                             
-                            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: ${s.low > 0 ? 'rgba(245, 158, 11, 0.1)' : 'transparent'}; cursor: ${s.low > 0 ? 'pointer' : 'default'}; transition: background 0.2s;" 
-                                 ${s.low > 0 ? `onclick="ProductsView.filterByCategoryWithStock('${cat}', 'low')" onmouseover="this.style.background='rgba(235, 158, 11, 0.2)'" onmouseout="this.style.background='rgba(245, 158, 11, 0.1)'"` : ''}>
-                                <div style="font-size: 1rem; color: ${s.low > 0 ? '#fbbf24' : '#475569'}; font-weight: 900;">${s.low}</div>
-                                <div style="font-size: 0.6rem; color: ${s.low > 0 ? '#fcd34d' : '#475569'}; font-weight: 800; text-transform: uppercase;">BAJO STOCK</div>
+                            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: ${s.low > 0 ? '#fffbeb' : '#f9fafb'}; cursor: ${s.low > 0 ? 'pointer' : 'default'}; transition: background 0.2s;" 
+                                 ${s.low > 0 ? `onclick="ProductsView.filterByCategoryWithStock('${cat}', 'low')" onmouseover="this.style.background='#fef3c7'" onmouseout="this.style.background='#fffbeb'"` : ''}>
+                                <div style="font-size: 1rem; color: ${s.low > 0 ? '#d97706' : '#9ca3af'}; font-weight: 800;">${s.low}</div>
+                                <div style="font-size: 0.6rem; color: ${s.low > 0 ? '#f59e0b' : '#9ca3af'}; font-weight: 700; text-transform: uppercase;">BAJO STOCK</div>
                             </div>
                         </div>
                     </div>
@@ -243,10 +252,10 @@ const ProductsView = {
 
     renderProductsTable(products) {
         if (products.length === 0) return `
-            <div style="text-align: center; padding: 5rem 2rem; background: rgba(0,0,0,0.2); border-radius: 1.5rem; border: 2px dashed rgba(255,255,255,0.05);">
-                <div style="font-size: 4rem; opacity: 0.2; margin-bottom: 1rem;">📦</div>
-                <h3 style="opacity: 0.5;">No hay productos en esta categoría</h3>
-                <p style="opacity: 0.3; font-size: 0.9rem;">Prueba buscando otro nombre o cambia de categoría</p>
+            <div style="text-align: center; padding: 5rem 2rem; background: #f9fafb; border-radius: 1.25rem; border: 2px dashed #d1d5db;">
+                <div style="font-size: 4rem; opacity: 0.4; margin-bottom: 1rem;">📦</div>
+                <h3 style="color: #6b7280;">No hay productos en esta categoría</h3>
+                <p style="color: #9ca3af; font-size: 0.9rem;">Prueba buscando otro nombre o cambia de categoría</p>
             </div>
         `;
 
@@ -263,50 +272,50 @@ const ProductsView = {
 
             return `
                     <div class="product-card" 
-                         style="background: rgba(30, 41, 59, 0.45); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 1.5rem; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; position: relative; transition: all 0.25s ease;"
-                         onmouseover="this.style.background='rgba(30, 41, 59, 0.6)'; this.style.borderColor='rgba(59, 130, 246, 0.3)';"
-                         onmouseout="this.style.background='rgba(30, 41, 59, 0.45)'; this.style.borderColor='rgba(255, 255, 255, 0.05)';">
+                         style="background: #ffffff; border: 1.5px solid #e5e7eb; border-radius: 1.25rem; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; position: relative; transition: all 0.25s ease; box-shadow: 0 2px 8px rgba(0,0,0,0.04);"
+                         onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 28px rgba(0,0,0,0.09)'; this.style.borderColor='#9ca3af';"
+                         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.04)'; this.style.borderColor='#e5e7eb';">
                         
                         <!-- Header: Nombre e Icono -->
                         <div style="display: flex; align-items: flex-start; gap: 1rem;">
-                            <div style="font-size: 2.2rem; background: rgba(0,0,0,0.3); width: 64px; height: 64px; border-radius: 1.25rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                            <div style="font-size: 2.2rem; background: #f3f4f6; width: 64px; height: 64px; border-radius: 1rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1.5px solid #e5e7eb;">
                                 ${this.getCategoryIcon(p.category)}
                             </div>
                             <div style="flex: 1; overflow: hidden; padding-top: 5px;">
-                                <h3 style="margin: 0; color: #fff; font-size: 1.2rem; font-weight: 800; line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${p.name}</h3>
-                                <div style="font-size: 0.8rem; color: #64748b; margin-top: 0.25rem; letter-spacing: 0.5px;">${p.barcode || '---'}</div>
+                                <h3 style="margin: 0; color: #111827; font-size: 1.1rem; font-weight: 800; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">${p.name}</h3>
+                                <div style="font-size: 0.78rem; color: #9ca3af; margin-top: 0.25rem; font-family: monospace;">${p.barcode || '---'}</div>
                             </div>
                         </div>
 
                         <!-- Body: Precio y Stock -->
-                        <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 1rem;">
+                        <div style="display: grid; grid-template-columns: 1.2fr 1fr; gap: 0.75rem;">
                             <!-- Precio -->
-                            <div style="background: rgba(16, 185, 129, 0.1); border-radius: 1rem; padding: 0.75rem; border: 1px solid rgba(16, 185, 129, 0.1);">
-                                <div style="font-size: 0.7rem; color: #34d399; font-weight: 700; text-transform: uppercase;">Precio Venta</div>
-                                <div style="font-size: 1.6rem; font-weight: 900; color: #fff;">${formatCLP(p.price)}</div>
+                            <div style="background: #f0fdf4; border-radius: 0.75rem; padding: 0.75rem; border: 1.5px solid #bbf7d0;">
+                                <div style="font-size: 0.68rem; color: #16a34a; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Precio Venta</div>
+                                <div style="font-size: 1.5rem; font-weight: 900; color: #15803d;">${formatCLP(p.price)}</div>
                             </div>
                             <!-- Stock -->
-                            <div style="background: rgba(0,0,0,0.2); border-radius: 1rem; padding: 0.75rem; border-left: 4px solid ${stockLevelColor}; text-align: center;">
-                                <div style="font-size: 0.7rem; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Disponible</div>
-                                <div style="font-size: 1.4rem; font-weight: 900; color: #fff;">
-                                    ${formatStock(p.stock)}<span style="font-size: 0.8rem; font-weight: 600; opacity: 0.5;">${p.type === 'weight' ? 'kg' : 'u'}</span>
+                            <div style="background: #f9fafb; border-radius: 0.75rem; padding: 0.75rem; border-left: 4px solid ${stockLevelColor}; border-top: 1.5px solid #e5e7eb; border-right: 1.5px solid #e5e7eb; border-bottom: 1.5px solid #e5e7eb; text-align: center;">
+                                <div style="font-size: 0.68rem; color: #6b7280; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Disponible</div>
+                                <div style="font-size: 1.4rem; font-weight: 900; color: ${stockLevelColor};">
+                                    ${formatStock(p.stock)}<span style="font-size: 0.8rem; font-weight: 600; color: #9ca3af;">${p.type === 'weight' ? 'kg' : 'u'}</span>
                                 </div>
                             </div>
                         </div>
 
                         <!-- Footer Info: Proveedor y Botones Compactos -->
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto;">
-                            <div style="display: flex; align-items: center; gap: 0.5rem; color: #64748b; font-size: 0.85rem; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 0.75rem; border-top: 1px solid #f3f4f6;">
+                            <div id="sup-label-${p.id}" style="display: flex; align-items: center; gap: 0.5rem; color: #6b7280; font-size: 0.82rem; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                                 <span>🚚</span> ${sup}
                             </div>
                             <div style="display: flex; gap: 0.5rem;">
-                                <button class="btn btn-icon" style="width: 38px; height: 38px; padding: 0; background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: none; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onclick="ProductsView.showProductHistory(${p.id})" title="Ver Historial">
+                                <button class="btn btn-icon" style="width: 36px; height: 36px; padding: 0; background: #eff6ff; color: #3b82f6; border: 1.5px solid #bfdbfe; border-radius: 0.65rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'" onclick="ProductsView.showProductHistory(${p.id})" title="Ver Historial">
                                     📊
                                 </button>
-                                <button class="btn btn-icon" style="width: 38px; height: 38px; padding: 0; background: rgba(16, 185, 129, 0.15); color: #34d399; border: none; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onclick="ProductsView.showProductForm(${p.id})" title="Editar">
+                                <button class="btn btn-icon" style="width: 36px; height: 36px; padding: 0; background: #f0fdf4; color: #16a34a; border: 1.5px solid #bbf7d0; border-radius: 0.65rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'" onclick="ProductsView.showProductForm(${p.id})" title="Editar">
                                     ✏️
                                 </button>
-                                <button class="btn btn-icon" style="width: 38px; height: 38px; padding: 0; background: rgba(239, 68, 68, 0.1); color: #f87171; border: none; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onclick="ProductsView.deleteProduct(${p.id})" title="Desactivar">
+                                <button class="btn btn-icon" style="width: 36px; height: 36px; padding: 0; background: #fef2f2; color: #dc2626; border: 1.5px solid #fecaca; border-radius: 0.65rem; display: flex; align-items: center; justify-content: center; transition: all 0.2s;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'" onclick="ProductsView.deleteProduct(${p.id})" title="Desactivar">
                                     🗑️
                                 </button>
                             </div>
@@ -319,12 +328,17 @@ const ProductsView = {
 
     async getLastSuppliers() {
         try {
-            const purchases = await Purchase.getAll();
             const suppliers = await Supplier.getAll();
             const supplierMap = {};
             suppliers.forEach(s => supplierMap[s.id] = s.name);
+
+            // Carga balanceada: solo revisamos las últimas 500 compras para determinar proveedores recientes
+            // Esto evita descargar gigas de historial en tiendas muy grandes.
+            const allPurchases = await Purchase.getAll();
+            const purchases = allPurchases.sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 500);
+            
             const productLastSupplier = {};
-            purchases.sort((a, b) => new Date(b.date) - new Date(a.date)).forEach(pur => {
+            purchases.forEach(pur => {
                 const sName = supplierMap[pur.supplierId] || 'Proveedor desconocido';
                 if (pur.items) pur.items.forEach(item => {
                     if (!productLastSupplier[item.productId]) productLastSupplier[item.productId] = sName;
@@ -332,6 +346,16 @@ const ProductsView = {
             });
             return productLastSupplier;
         } catch (e) { return {}; }
+    },
+
+    updateSupplierLabels() {
+        const labels = document.querySelectorAll('[id^="sup-label-"]');
+        labels.forEach(label => {
+            const productId = label.id.replace('sup-label-', '');
+            if (this.productSuppliers[productId]) {
+                label.innerHTML = `<span>🚚</span> ${this.productSuppliers[productId]}`;
+            }
+        });
     },
 
     async refresh() {

@@ -45,8 +45,11 @@ const SuppliersView = {
         searchInput.addEventListener('input', async (e) => {
             const term = e.target.value;
             const suppliers = term ? await Supplier.search(term) : await Supplier.getAll();
-            document.getElementById('suppliersTable').innerHTML = this.renderSuppliersTable(suppliers);
-            await this.loadSupplierDebts(suppliers);
+            const table = document.getElementById('suppliersTable');
+            if (table) {
+                table.innerHTML = this.renderSuppliersTable(suppliers);
+                await this.loadSupplierDebts(suppliers);
+            }
         });
 
         // C6: Cargar deudas de proveedores
@@ -58,22 +61,33 @@ const SuppliersView = {
      * C6: Cargar y mostrar deuda de cada proveedor en la tabla.
      */
     async loadSupplierDebts(suppliers) {
+        console.log(`C6: Cargando deudas para ${suppliers.length} proveedores`);
         for (const s of suppliers) {
             try {
-                const debt = await SupplierPaymentService.getSupplierDebt(s.id);
+                const detail = await SupplierPaymentService.getDebtDetail(s.id);
+                const pending = detail.filter(d => d.balance > 0.01);
+                const debt = pending.reduce((sum, item) => sum + item.balance, 0);
+                
                 const elem = document.getElementById(`supplier-debt-${s.id}`);
                 if (elem) {
-                    if (debt > 0) {
-                        elem.textContent = formatCLP(debt);
-                        elem.style.color = 'var(--danger)';
+                    if (debt > 0.01) {
+                        elem.innerHTML = `
+                            <span style="color: #dc2626; font-size: 1.3rem; font-weight: 800;">${formatCLP(debt)}</span>
+                            <span style="font-size: 0.75rem; color: #dc2626; font-weight: 600; background: #fef2f2; padding: 0.2rem 0.5rem; border-radius: 0.4rem; margin-top: 0.25rem; border: 1px solid #fecaca;">
+                                ${pending.length} compras pendientes
+                            </span>
+                        `;
                     } else {
-                        elem.textContent = 'Sin deuda';
-                        elem.style.color = 'var(--secondary)';
+                        elem.innerHTML = `
+                            <span style="color: #16a34a; font-size: 1.1rem; font-weight: 700;">Sin deuda</span>
+                            <span style="font-size: 0.7rem; color: #6b7280; margin-top: 0.25rem; font-weight: 500;">Al día ✓</span>
+                        `;
                     }
                 }
-            } catch (_) {
+            } catch (error) {
+                console.error(`C6: Error cargando deuda proveedor #${s.id}:`, error);
                 const elem = document.getElementById(`supplier-debt-${s.id}`);
-                if (elem) elem.textContent = '-';
+                if (elem) elem.textContent = 'Error';
             }
         }
     },
@@ -96,51 +110,54 @@ const SuppliersView = {
             const bgColor = colors[Math.abs(hash) % colors.length];
 
             return `
-                    <div class="supplier-card" style="background: rgba(17, 24, 39, 0.4); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 1rem; padding: 1.25rem; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); position: relative; display: flex; flex-direction: column; gap: 1rem;"
-                         onmouseover="this.style.transform='translateY(-4px)'; this.style.backgroundColor='rgba(31, 41, 55, 0.6)'; this.style.boxShadow='0 12px 24px -8px rgba(0, 0, 0, 0.5)';"
-                         onmouseout="this.style.transform='translateY(0)'; this.style.backgroundColor='rgba(17, 24, 39, 0.4)'; this.style.boxShadow='none';">
+                    <div class="supplier-card" style="background: #ffffff; border: 1.5px solid #e5e7eb; border-radius: 1rem; padding: 1.25rem; transition: all 0.25s ease; position: relative; display: flex; flex-direction: column; gap: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.04);"
+                         onmouseover="this.style.transform='translateY(-4px)'; this.style.boxShadow='0 12px 28px rgba(0,0,0,0.08)'; this.style.borderColor='#9ca3af';"
+                         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.04)'; this.style.borderColor='#e5e7eb';">
                         
                         <div style="display: flex; align-items: center; justify-content: space-between;">
                             <div style="display: flex; align-items: center; gap: 1rem;">
-                                <div style="width: 50px; height: 50px; background: ${bgColor}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">
+                                <div style="width: 50px; height: 50px; background: ${bgColor}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.15); flex-shrink: 0;">
                                     ${initials}
                                 </div>
                                 <div>
-                                    <h3 style="margin: 0; font-size: 1.15rem; color: #fff; line-height: 1.2;">${s.name}</h3>
-                                    ${s.contact ? `<div style="color: var(--secondary); font-size: 0.85rem; margin-top: 0.25rem;">👤 ${s.contact}</div>` : ''}
+                                    <h3 style="margin: 0; font-size: 1.1rem; color: #111827; line-height: 1.2; font-weight: 800;">${s.name}</h3>
+                                    ${s.contact ? `<div style="color: #6b7280; font-size: 0.85rem; margin-top: 0.2rem; font-weight: 500;">👤 ${s.contact}</div>` : ''}
                                 </div>
                             </div>
                         </div>
 
                         ${(s.phone || s.email) ? `
-                        <div style="display: flex; flex-direction: column; gap: 0.4rem; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 0.5rem; font-size: 0.9rem; color: #cbd5e1;">
-                            ${s.phone ? `<div style="display: flex; align-items: center; gap: 0.5rem;">📞 ${s.phone}</div>` : ''}
-                            ${s.email ? `<div style="display: flex; align-items: center; gap: 0.5rem;">✉️ ${s.email}</div>` : ''}
+                        <div style="display: flex; flex-direction: column; gap: 0.4rem; padding: 0.65rem 0.85rem; background: #f9fafb; border-radius: 0.5rem; font-size: 0.875rem; color: #374151; border: 1px solid #e5e7eb;">
+                            ${s.phone ? `<div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 500;">📞 ${s.phone}</div>` : ''}
+                            ${s.email ? `<div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 500;">✉️ ${s.email}</div>` : ''}
                         </div>
                         ` : ''}
 
-                        <div style="background: rgba(0,0,0,0.25); padding: 1rem; border-radius: 0.75rem; border: 1px solid rgba(255,255,255,0.05); text-align: center;">
-                            <div style="font-size: 0.75rem; color: var(--secondary); text-transform: uppercase; letter-spacing: 0.5px;">Deuda al Proveedor</div>
-                            <div id="supplier-debt-${s.id}" style="font-weight: 700; font-size: 1.25rem; color: var(--secondary); margin-top: 0.25rem; display: flex; align-items: center; justify-content: center; gap: 0.3rem;">
-                                ⏳ Calculando...
+                        <div style="background: #f9fafb; padding: 0.875rem; border-radius: 0.75rem; border: 1.5px solid #e5e7eb; text-align: center;">
+                            <div style="font-size: 0.72rem; color: #6b7280; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">DEUDA AL PROVEEDOR</div>
+                            <div id="supplier-debt-${s.id}" style="font-weight: 700; font-size: 1.2rem; color: #374151; margin-top: 0.25rem; display: flex; align-items: center; justify-content: center; gap: 0.4rem; flex-direction: column;">
+                                <span style="color: #9ca3af; font-size: 0.9rem;">⏳ Calculando...</span>
                             </div>
                         </div>
 
-                        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin-top: auto; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.05);">
-                            <button class="btn btn-sm" style="flex: 1; background: rgba(16, 185, 129, 0.2); color: #34d399;" onclick="SuppliersView.showSupplierPaymentForm(${s.id})" title="Registrar pago a proveedor">
+                        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 0.5rem; margin-top: auto; padding-top: 0.5rem; border-top: 1px solid #f3f4f6;">
+                            <button class="btn btn-sm" style="flex: 1; min-width: 70px; background: #f0fdf4; color: #16a34a; border: 1.5px solid #bbf7d0; font-weight: 600;" onmouseover="this.style.background='#dcfce7'" onmouseout="this.style.background='#f0fdf4'" onclick="SuppliersView.showSupplierPaymentForm(${s.id})" title="Registrar pago a proveedor">
                                 💰 Pagar
                             </button>
-                            <button class="btn btn-sm" style="flex: 1; background: rgba(59, 130, 246, 0.2); color: #60a5fa;" onclick="SuppliersView.showPurchaseHistory(${s.id})" title="Ver historial de compras">
+                            <button class="btn btn-sm" style="flex: 1; min-width: 70px; background: #eff6ff; color: #2563eb; border: 1.5px solid #bfdbfe; font-weight: 600;" onmouseover="this.style.background='#dbeafe'" onmouseout="this.style.background='#eff6ff'" onclick="SuppliersView.showPurchaseHistory(${s.id})" title="Ver historial de compras">
                                 📋 Compras
                             </button>
-                            <button class="btn btn-sm" style="flex: 1; background: rgba(168, 85, 247, 0.2); color: #c084fc;" onclick="SuppliersView.showProductsBySupplier(${s.id})" title="Ver stock de productos de este proveedor">
+                            <button class="btn btn-sm" style="flex: 1; min-width: 70px; background: #f0fdf4; color: #059669; border: 1.5px solid #a7f3d0; font-weight: 600;" onmouseover="this.style.background='#d1fae5'" onmouseout="this.style.background='#f0fdf4'" onclick="SuppliersView.showPaymentHistory(${s.id})" title="Ver historial de pagos">
+                                📜 Historial
+                            </button>
+                            <button class="btn btn-sm" style="flex: 1; min-width: 70px; background: #faf5ff; color: #7c3aed; border: 1.5px solid #e9d5ff; font-weight: 600;" onmouseover="this.style.background='#ede9fe'" onmouseout="this.style.background='#faf5ff'" onclick="SuppliersView.showProductsBySupplier(${s.id})" title="Ver stock de productos de este proveedor">
                                 📦 Stock
                             </button>
                             ${PermissionService.can('suppliers.edit') ? `
-                            <button class="btn btn-sm" style="background: rgba(255,255,255,0.1); color: #fff; min-width: 40px; padding: 0.25rem 0.5rem;" onclick="SuppliersView.showSupplierForm(${s.id})" title="Editar proveedor">✏️</button>
+                            <button class="btn btn-sm" style="background: #f9fafb; color: #374151; border: 1.5px solid #e5e7eb; min-width: 40px; padding: 0.25rem 0.5rem; font-weight: 600;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='#f9fafb'" onclick="SuppliersView.showSupplierForm(${s.id})" title="Editar proveedor">✏️</button>
                             ` : ''}
                             ${PermissionService.can('suppliers.delete') ? `
-                            <button class="btn btn-sm" style="background: rgba(239, 68, 68, 0.2); color: #f87171; min-width: 40px; padding: 0.25rem 0.5rem;" onclick="SuppliersView.deleteSupplier(${s.id})" title="Desactivar proveedor">🗑️</button>
+                            <button class="btn btn-sm" style="background: #fef2f2; color: #dc2626; border: 1.5px solid #fecaca; min-width: 40px; padding: 0.25rem 0.5rem; font-weight: 600;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'" onclick="SuppliersView.deleteSupplier(${s.id})" title="Desactivar proveedor">🗑️</button>
                             ` : ''}
                         </div>
                     </div>
@@ -302,8 +319,17 @@ const SuppliersView = {
 
     async refresh() {
         const suppliers = await Supplier.getAll();
-        document.getElementById('suppliersTable').innerHTML = this.renderSuppliersTable(suppliers);
-        await this.loadSupplierDebts(suppliers);
+        const table = document.getElementById('suppliersTable');
+        
+        if (table) {
+            table.innerHTML = this.renderSuppliersTable(suppliers);
+            await this.loadSupplierDebts(suppliers);
+        }
+
+        // C6: También refrescar el resumen de deudas en Compras si está visible
+        if (typeof PurchasesView !== 'undefined' && document.getElementById('accountsPayableSummary')) {
+            await PurchasesView.renderAccountsPayableSummary();
+        }
     },
 
     /**
@@ -360,6 +386,13 @@ const SuppliersView = {
                     <label>Notas (opcional)</label>
                     <input type="text" id="spNotes" class="form-control" placeholder="Notas adicionales...">
                 </div>
+
+                <div class="form-group" style="margin-top: 1rem;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="spDeductFromCash" checked>
+                        <span>Egresar dinero de la caja actual</span>
+                    </label>
+                </div>
             </form>
         `;
 
@@ -410,6 +443,8 @@ const SuppliersView = {
         const btn = document.getElementById('btnProcessSupplierPayment');
         if (btn) { btn.disabled = true; btn.textContent = 'Procesando...'; }
 
+        const deductFromCash = document.getElementById('spDeductFromCash').checked;
+
         try {
             await SupplierPaymentService.registerPayment({
                 supplierId: supplierId,
@@ -417,7 +452,8 @@ const SuppliersView = {
                 amount: amount,
                 method: method,
                 reference: reference,
-                notes: notes
+                notes: notes,
+                deductFromCashRegister: deductFromCash
             });
             closeModal();
             showNotification('Pago registrado exitosamente', 'success');

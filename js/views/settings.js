@@ -1,53 +1,48 @@
 const SettingsView = {
     async render() {
-        const productCount = await db.count('products');
-        const salesCount = await db.count('sales');
-        const customerCount = await db.count('customers');
-
-        // Initialize security, auto-backup, and user management sections after render
+        // C6: Optimización - No bloquear el renderizado con conteos pesados
         setTimeout(() => {
+            this.updateStats();
             this.initSecuritySection();
             this.initAutoBackupSection();
-            // C8: Cargar lista de usuarios y roles
             this.loadUserRoles();
-            // Mostrar info de SQLite si está activo
             this.initSQLiteInfo();
         }, 100);
 
         return `
             <div class="view-header">
-                <h1>Configuración</h1>
-                <p>Gestión del sistema y datos</p>
+                <h1 style="color: #111827;">Configuración</h1>
+                <p style="color: #4b5563;">Gestión del sistema y datos</p>
             </div>
             
             <div class="grid grid-2">
-                <div class="card">
-                    <h3 style="margin-bottom: 1.5rem;">📊 Estadísticas del Sistema</h3>
+                <div class="card" style="background: #ffffff; border: 1.5px solid #d1d5db; border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+                    <h3 style="margin-bottom: 1.5rem; color: #111827; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem;">📊 Estadísticas del Sistema</h3>
                     
-                    <div style="display: flex; flex-direction: column; gap: 1rem;">
-                        <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: var(--light); border-radius: 0.375rem;">
-                            <span>Productos registrados:</span>
-                            <strong>${productCount}</strong>
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.875rem 1rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.5rem; transition: background 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='#f9fafb'">
+                            <span style="color: #374151; font-weight: 500;">📦 Productos registrados:</span>
+                            <strong id="stat-products" style="color: #4f46e5; font-size: 1.1rem;">Cargando...</strong>
                         </div>
-                        <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: var(--light); border-radius: 0.375rem;">
-                            <span>Ventas totales:</span>
-                            <strong>${salesCount}</strong>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.875rem 1rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.5rem; transition: background 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='#f9fafb'">
+                            <span style="color: #374151; font-weight: 500;">💵 Ventas totales:</span>
+                            <strong id="stat-sales" style="color: #059669; font-size: 1.1rem;">Cargando...</strong>
                         </div>
-                        <div style="display: flex; justify-content: space-between; padding: 0.75rem; background: var(--light); border-radius: 0.375rem;">
-                            <span>Clientes registrados:</span>
-                            <strong>${customerCount}</strong>
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.875rem 1rem; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 0.5rem; transition: background 0.2s;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='#f9fafb'">
+                            <span style="color: #374151; font-weight: 500;">👥 Clientes registrados:</span>
+                            <strong id="stat-customers" style="color: #db2777; font-size: 1.1rem;">Cargando...</strong>
                         </div>
                     </div>
                     
-                    <button class="btn btn-secondary" style="width: 100%; margin-top: 1.5rem;" 
+                    <button class="btn btn-secondary" style="width: 100%; margin-top: 1.5rem; background: #f9fafb; color: #374151; border: 1.5px solid #d1d5db; font-weight: 600;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f9fafb'"
                             onclick="SettingsView.checkStorage()">
                         Ver Uso de Almacenamiento
                     </button>
                 </div>
                 
-                <div class="card">
-                    <h3 style="margin-bottom: 1.5rem;">📥/📤 Excel por entidad</h3>
-                    <p style="font-size: 0.9rem; color: rgba(226, 232, 240, 0.8); margin-bottom: 0.75rem;">
+                <div class="card" style="background: #ffffff; border: 1.5px solid #d1d5db; border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+                    <h3 style="margin-bottom: 1.5rem; color: #111827; font-size: 1.05rem;">📥/📤 Excel por entidad</h3>
+                    <p style="font-size: 0.9rem; color: #6b7280; margin-bottom: 0.75rem;">
                         Descarga cada área como archivo Excel separado o importa datos desde la misma interfaz.
                     </p>
                     <div class="grid grid-3" style="margin-bottom: 1rem;">
@@ -69,8 +64,8 @@ const SettingsView = {
                 </div>
 
                 ${PermissionService.can('settings.backup') ? `
-                <div class="card">
-                    <h3 style="margin-bottom: 1.5rem;">💾 Backup y Restauración</h3>
+                <div class="card" style="background: #ffffff; border: 1.5px solid #d1d5db; border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+                    <h3 style="margin-bottom: 1.5rem; color: #111827; font-size: 1.05rem;">💾 Backup y Restauración</h3>
                     
                     <div style="display: flex; flex-direction: column; gap: 0.75rem;">
                         <button class="btn btn-success" onclick="BackupManager.exportAllData()">
@@ -94,9 +89,9 @@ const SettingsView = {
                 </div>
                 ` : ''}
 
-                <div class="card" id="autoBackupCard" style="margin-top: 1rem;">
-                    <h3 style="margin-bottom: 1rem;">🔄 Backup automático</h3>
-                    <p style="font-size: 0.875rem; color: var(--text); opacity: 0.8; margin-bottom: 1rem;">
+                <div class="card" id="autoBackupCard" style="margin-top: 1rem; background: #ffffff; border: 1.5px solid #d1d5db; border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+                    <h3 style="margin-bottom: 1rem; color: #111827; font-size: 1.05rem;">🔄 Backup automático</h3>
+                    <p style="font-size: 0.875rem; color: #6b7280; margin-bottom: 1rem;">
                         Solo en Electron. Los backups se guardan en la carpeta <code>userData/backups</code>.
                     </p>
                     <div style="display: flex; flex-direction: column; gap: 1rem;">
@@ -122,16 +117,16 @@ const SettingsView = {
                 </div>
             </div>
             
-            <div class="card">
-                <h3 style="margin-bottom: 1.5rem;">⚙️ Opciones del Sistema</h3>
+            <div class="card" style="background: #ffffff; border: 1.5px solid #d1d5db; border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+                <h3 style="margin-bottom: 1.5rem; color: #111827; font-size: 1.05rem;">⚙️ Opciones del Sistema</h3>
                 
                 <div class="grid grid-3">
                     <div>
                         <h4 style="margin-bottom: 0.75rem;">Información</h4>
                         <p style="font-size: 0.875rem; color: var(--text); opacity: 0.8;">
                             Versión: 1.0.0<br>
-                            Base de datos: IndexedDB<br>
-                            Estado: Offline
+                            Base de datos: ${db.mode === 'sqlite' ? 'SQLite (Servidor)' : 'IndexedDB (Local)'}<br>
+                            Estado: ${db.mode === 'sqlite' ? 'Online' : 'Offline'}
                         </p>
                     </div>
                     
@@ -156,11 +151,36 @@ const SettingsView = {
                     </div>
                 </div>
             </div>
+
+            ${PermissionService.can('settings.backup') ? `
+            <div class="card" style="border: 2px solid #ef4444; background: #fff5f5; border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 12px rgba(239,68,68,0.1);">
+                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                    <div style="font-size: 2rem;">🚨</div>
+                    <div>
+                        <h3 style="margin: 0; color: #b91c1c; font-size: 1.1rem;">Reseteo de Fábrica</h3>
+                        <p style="margin: 0; font-size: 0.85rem; color: #ef4444;">Elimina TODOS los datos del sistema permanentemente</p>
+                    </div>
+                </div>
+                <p style="font-size: 0.85rem; color: #374151; margin-bottom: 1rem;">
+                    Esta acción eliminará <strong>productos, ventas, clientes, proveedores, compras, movimientos</strong> y toda la información asociada.
+                    <br><strong style="color: #b91c1c;">⚠️ Esta acción NO se puede deshacer.</strong> Se recomienda hacer un backup primero.
+                </p>
+                <div style="display: flex; gap: 1rem; align-items: center;">
+                    <button class="btn" onclick="SettingsView.factoryReset()" 
+                            style="background: #dc2626; color: white; padding: 0.75rem 1.5rem; font-weight: bold; border-radius: 0.5rem;">
+                        🗑️ VACIAR TODA LA BASE DE DATOS
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="BackupManager.exportAllData()">
+                        💾 Hacer Backup Primero
+                    </button>
+                </div>
+            </div>
+            ` : ''}
             
             ${PermissionService.can('settings.users') ? `
-            <div class="card" id="userManagementCard">
+            <div class="card" id="userManagementCard" style="background: #ffffff; border: 1.5px solid #d1d5db; border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <h3 style="margin: 0;">👥 Gestión de Usuarios y Roles</h3>
+                    <h3 style="margin: 0; color: #111827; font-size: 1.05rem;">👥 Gestión de Usuarios y Roles</h3>
                     <button class="btn btn-primary btn-sm" onclick="SettingsView.showCreateUserModal()">
                         + Nuevo Usuario
                     </button>
@@ -259,6 +279,24 @@ const SettingsView = {
             </div>
             
         `;
+    },
+
+    async updateStats() {
+        try {
+            const productCount = await db.count('products');
+            const salesCount = await db.count('sales');
+            const customerCount = await db.count('customers');
+
+            const pElem = document.getElementById('stat-products');
+            const sElem = document.getElementById('stat-sales');
+            const cElem = document.getElementById('stat-customers');
+
+            if (pElem) pElem.textContent = productCount;
+            if (sElem) sElem.textContent = salesCount;
+            if (cElem) cElem.textContent = customerCount;
+        } catch (e) {
+            console.warn('Error updating stats:', e);
+        }
     },
 
     async initAutoBackupSection() {
@@ -475,6 +513,73 @@ const SettingsView = {
             }
         } else {
             showNotification('Service Worker no disponible', 'warning');
+        }
+    },
+
+    async factoryReset() {
+        // Doble confirmación con modal personalizado (prompt() no funciona en Electron)
+        showConfirm('⚠️ ¿Estás SEGURO de que deseas eliminar TODOS los datos?\n\nEsto borrará productos, ventas, clientes, compras y todo lo demás.', () => {
+            // Segunda confirmación: modal con input
+            const content = `
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <div style="font-size: 3rem; margin-bottom: 0.5rem;">🚨</div>
+                    <p style="color: #fca5a5; font-weight: bold; font-size: 1.1rem;">ÚLTIMA ADVERTENCIA</p>
+                    <p style="font-size: 0.9rem; color: var(--text); opacity: 0.8;">
+                        Esta acción eliminará permanentemente todos los datos.<br>
+                        <strong>No se puede deshacer.</strong>
+                    </p>
+                </div>
+                <div class="form-group">
+                    <label style="color: #fca5a5;">Para confirmar, escribe <strong>BORRAR TODO</strong> en el campo:</label>
+                    <input type="text" id="factoryResetConfirmInput" class="form-control" 
+                           placeholder="Escribe BORRAR TODO aquí" autocomplete="off"
+                           style="text-align: center; font-weight: bold; font-size: 1.1rem; letter-spacing: 2px; margin-top: 0.5rem;">
+                </div>
+            `;
+            const footer = `
+                <button class="btn btn-secondary" onclick="closeModal()">Cancelar</button>
+                <button class="btn" id="factoryResetExecBtn" 
+                        style="background: #dc2626; color: white; font-weight: bold; opacity: 0.5; cursor: not-allowed;" 
+                        disabled onclick="SettingsView.executeFactoryReset()">
+                    🗑️ ELIMINAR TODO
+                </button>
+            `;
+            showModal(content, { title: '⚠️ Confirmación Final', footer, width: '480px' });
+
+            // Habilitar botón solo si escriben "BORRAR TODO"
+            setTimeout(() => {
+                const input = document.getElementById('factoryResetConfirmInput');
+                const btn = document.getElementById('factoryResetExecBtn');
+                if (input && btn) {
+                    input.addEventListener('input', () => {
+                        if (input.value.trim() === 'BORRAR TODO') {
+                            btn.disabled = false;
+                            btn.style.opacity = '1';
+                            btn.style.cursor = 'pointer';
+                        } else {
+                            btn.disabled = true;
+                            btn.style.opacity = '0.5';
+                            btn.style.cursor = 'not-allowed';
+                        }
+                    });
+                    input.focus();
+                }
+            }, 100);
+        });
+    },
+
+    async executeFactoryReset() {
+        closeModal();
+        try {
+            showNotification('🚮 Vaciando base de datos...', 'info');
+            await db.wipeAll();
+            showNotification('✅ Base de datos vaciada exitosamente. Recargando...', 'success');
+            setTimeout(() => {
+                window.location.reload();
+            }, 2000);
+        } catch (error) {
+            showNotification('❌ Error: ' + error.message, 'error');
+            console.error('Factory reset error:', error);
         }
     },
 
@@ -826,38 +931,43 @@ const SettingsView = {
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const jsonData = JSON.parse(e.target.result);
-
-                showNotification('Migrando datos, por favor espera...', 'info');
-
-                const response = await fetch(`${window.API_CONFIG.BASE_URL}/api/migration/import`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(jsonData)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    showNotification('🚀 Migración existosa! Los datos ya están en SQLite.', 'success');
-                    closeModal();
-
-                    setTimeout(() => {
-                        showConfirm('La migración terminó. ¿Deseas reiniciar el sistema para usar SQLite?', () => {
-                            location.reload();
-                        });
-                    }, 1000);
-                } else {
-                    throw new Error(result.error || 'Error desconocido');
+        // C4: Mover confirmación al inicio para evitar bloqueos durante el proceso pesado
+        showConfirm(
+            '⚠️ ADVERTENCIA: Se sobrescribirán todos los datos en SQLite.\n¿Estás seguro de continuar?',
+            async () => {
+                const btn = document.querySelector('button[onclick="SettingsView.processSQLiteMigration()"]');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = '<span class="loading-spinner"></span> Trabajando...';
                 }
-            } catch (error) {
-                console.error('Error en migración:', error);
-                showNotification('Error: ' + error.message, 'error');
+
+                const reader = new FileReader();
+                reader.onload = async (e) => {
+                    try {
+                        const jsonData = e.target.result;
+                        if (btn) btn.innerHTML = '<span class="loading-spinner"></span> Subiendo 5MB...';
+                        
+                        await BackupManager.importData(jsonData);
+                        if (btn) btn.textContent = '✅ Completado';
+                        closeModal();
+                    } catch (error) {
+                        console.error('Error:', error);
+                        showNotification('Error: ' + error.message, 'error');
+                        if (btn) {
+                            btn.disabled = false;
+                            btn.textContent = 'Reintentar Migración';
+                        }
+                    }
+                };
+                reader.onerror = () => {
+                    showNotification('Error al leer el archivo', 'error');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.textContent = 'Comenzar Migración';
+                    }
+                };
+                reader.readAsText(file);
             }
-        };
-        reader.readAsText(file);
+        );
     }
 };

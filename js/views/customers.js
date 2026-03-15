@@ -14,8 +14,22 @@ const CustomersView = {
             }
         });
 
-        // Calculate Top Customers (by volume)
-        const allSales = await Sale.getAll();
+        // Calculate Top Customers (by volume) from last 30 days
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        
+        let allSales = [];
+        try {
+            // Limitamos a 30 días para no saturar el navegador si hay miles de ventas
+            allSales = await Sale.getByDateRange(thirtyDaysAgo.toISOString(), new Date().toISOString());
+            // Si hay demasiadas ventas (> 1000), solo tomamos las últimas para el cálculo
+            if (allSales.length > 1000) {
+                allSales = allSales.sort((a,b) => new Date(b.date) - new Date(a.date)).slice(0, 1000);
+            }
+        } catch (e) {
+            console.warn('Error fetching sales for top customers:', e);
+        }
+
         const volumeMap = {};
         allSales.forEach(s => {
             if (s.customerId && s.status !== 'cancelled') {
@@ -56,23 +70,22 @@ const CustomersView = {
                     </div>
                 </div>
             </div>
-            
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
+                   <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
                 ${topCustomers.map((c, i) => `
-                    <div class="stat-card" style="background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.8)); border: 1px solid rgba(59,130,246,0.2); position: relative; overflow: hidden;">
-                        <div style="position: absolute; right: -10px; top: -10px; font-size: 5rem; opacity: 0.1; font-weight: 900; color: #60a5fa;">${i + 1}</div>
-                        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">${['🥇', '🥈', '🥉'][i]}</div>
-                        <h3 style="margin:0; font-size: 1.1rem; color: #fff;">${c.name}</h3>
-                        <p style="color: #60a5fa; font-weight: 800; font-size: 1.25rem; margin: 0.25rem 0;">${formatCLP(volumeMap[c.id])}</p>
-                        <span style="font-size: 0.7rem; color: #94a3b8; text-transform: uppercase; font-weight: 700;">Volumen Total Compras</span>
+                    <div style="background: #ffffff; border: 1.5px solid ${['#fde68a','#e2e8f0','#fecaca'][i]}; border-left: 5px solid ${['#f59e0b','#94a3b8','#f87171'][i]}; border-radius: 1.25rem; padding: 1.5rem; position: relative; overflow: hidden; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 2px 10px rgba(0,0,0,0.05);" onmouseover="this.style.transform='translateY(-4px)';this.style.boxShadow='0 12px 28px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 2px 10px rgba(0,0,0,0.05)'">
+                        <div style="position: absolute; right: 1rem; top: 0.5rem; font-size: 4rem; opacity: 0.08; font-weight: 900; color: #111827;">${i + 1}</div>
+                        <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">${['\ud83e\udd47', '\ud83e\udd48', '\ud83e\udd49'][i]}</div>
+                        <h3 style="margin:0; font-size: 1.05rem; color: #111827; font-weight: 800; text-transform: capitalize;">${c.name}</h3>
+                        <p style="color: ${['#b45309','#475569','#f87171'][i]}; font-weight: 800; font-size: 1.2rem; margin: 0.25rem 0;">${formatCLP(volumeMap[c.id])}</p>
+                        <span style="font-size: 0.7rem; color: #6b7280; text-transform: uppercase; font-weight: 700;">Volumen Total Compras</span>
                     </div>
                 `).join('')}
-                ${topCustomers.length === 0 ? '<div class="stat-card" style="opacity: 0.5;">No hay actividad de clientes aún</div>' : ''}
+                ${topCustomers.length === 0 ? '<div style="background: #f9fafb; border: 1.5px dashed #d1d5db; border-radius: 1.25rem; padding: 2rem; text-align: center; color: #9ca3af; font-style: italic;">No hay actividad de clientes aún</div>' : ''}
             </div>
 
-            <div class="card glass-panel" style="padding: 1.5rem;">
+            <div class="card" style="padding: 1.5rem; background: #ffffff; border: 1.5px solid #e5e7eb;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <h2 style="margin:0; font-size: 1.25rem; font-weight: 800; color: #fff;">👥 Listado por Deuda</h2>
+                    <h2 style="margin:0; font-size: 1.2rem; font-weight: 800; color: #111827;">👥 Listado por Deuda</h2>
                     <div class="search-box" style="width: 300px;">
                         <input type="text" id="searchCustomers" class="form-control" placeholder="Buscar clientes...">
                     </div>
@@ -131,54 +144,57 @@ const CustomersView = {
             const bgColor = colors[Math.abs(hash) % colors.length];
 
             return `
-                    <div class="customer-card" style="background: rgba(17, 24, 39, 0.6); border: 2px solid rgba(255, 255, 255, 0.05); border-radius: 1.5rem; padding: 1.5rem; transition: all 0.3s ease; position: relative; display: flex; flex-direction: column; gap: 1.25rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);"
-                         onmouseover="this.style.transform='translateY(-6px)'; this.style.borderColor='rgba(59, 130, 246, 0.3)'; this.style.boxShadow='0 20px 25px -5px rgba(0, 0, 0, 0.4)';"
-                         onmouseout="this.style.transform='translateY(0)'; this.style.borderColor='rgba(255, 255, 255, 0.05)'; this.style.boxShadow='0 4px 6px -1px rgba(0, 0, 0, 0.2)';">
+                    <div class="customer-card" style="background: #ffffff; border: 1.5px solid ${netDebt > 0 ? '#fecaca' : '#e5e7eb'}; border-radius: 1.25rem; padding: 1.5rem; transition: all 0.25s ease; position: relative; display: flex; flex-direction: column; gap: 1.25rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); ${netDebt > 0 ? 'border-left: 4px solid #ef4444;' : ''}"
+                         onmouseover="this.style.transform='translateY(-5px)'; this.style.boxShadow='0 16px 32px rgba(0,0,0,0.1)'; this.style.borderColor='${netDebt > 0 ? '#f87171' : '#9ca3af'}';"
+                         onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 2px 8px rgba(0,0,0,0.05)'; this.style.borderColor='${netDebt > 0 ? '#fecaca' : '#e5e7eb'}';">
                         
                         <!-- Cabecera: Inicial + Nombre -->
-                        <div style="display: flex; align-items: center; gap: 1.25rem;">
-                            <div style="width: 60px; height: 60px; background: ${bgColor}; color: white; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; box-shadow: 0 4px 12px ${bgColor}44;">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="width: 56px; height: 56px; background: ${bgColor}; color: white; border-radius: 1rem; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 800; box-shadow: 0 4px 10px ${bgColor}55; flex-shrink: 0;">
                                 ${initials}
                             </div>
-                            <h3 style="margin: 0; font-size: 1.4rem; color: #fff; line-height: 1.1; font-weight: 800; text-transform: capitalize;">${c.name}</h3>
+                            <div>
+                                <h3 style="margin: 0; font-size: 1.2rem; color: #111827; line-height: 1.1; font-weight: 800; text-transform: capitalize;">${c.name}</h3>
+                                ${c.phone ? `<div style="font-size: 0.78rem; color: #6b7280; margin-top: 0.2rem;">📞 ${c.phone}</div>` : ''}
+                            </div>
                         </div>
 
-                        <!-- Paneles de Dinero (Súper Claros) -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                            <div style="background: ${netDebt > 0 ? 'rgba(239, 68, 68, 0.15)' : 'rgba(255,255,255,0.03)'}; border: 1px solid ${netDebt > 0 ? 'rgba(239, 68, 68, 0.3)' : 'rgba(255,255,255,0.05)'}; padding: 1rem; border-radius: 1rem; text-align: center;">
-                                <div style="font-size: 0.75rem; color: ${netDebt > 0 ? '#f87171' : 'var(--secondary)'}; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 0.5rem;">🚨 DEUDA</div>
-                                <div style="font-weight: 900; font-size: 1.35rem; color: ${netDebt > 0 ? '#ef4444' : '#4b5563'}; line-height: 1;">
+                        <!-- Paneles de Dinero -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                            <div style="background: ${netDebt > 0 ? '#fef2f2' : '#f9fafb'}; border: 1.5px solid ${netDebt > 0 ? '#fecaca' : '#e5e7eb'}; padding: 0.875rem; border-radius: 0.875rem; text-align: center;">
+                                <div style="font-size: 0.68rem; color: ${netDebt > 0 ? '#dc2626' : '#9ca3af'}; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 0.4rem;">🚨 DEUDA</div>
+                                <div style="font-weight: 900; font-size: 1.3rem; color: ${netDebt > 0 ? '#dc2626' : '#9ca3af'}; line-height: 1;">
                                     ${netDebt > 0 ? formatCLP(netDebt) : '$0'}
                                 </div>
                             </div>
-                            <div style="background: ${netCredit > 0 ? 'rgba(16, 185, 129, 0.15)' : 'rgba(255,255,255,0.03)'}; border: 1px solid ${netCredit > 0 ? 'rgba(16, 185, 129, 0.3)' : 'rgba(255,255,255,0.05)'}; padding: 1rem; border-radius: 1rem; text-align: center;">
-                                <div style="font-size: 0.75rem; color: ${netCredit > 0 ? '#34d399' : 'var(--secondary)'}; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 0.5rem;">💰 A FAVOR</div>
-                                <div style="font-weight: 900; font-size: 1.35rem; color: ${netCredit > 0 ? '#10b981' : '#4b5563'}; line-height: 1;">
+                            <div style="background: ${netCredit > 0 ? '#f0fdf4' : '#f9fafb'}; border: 1.5px solid ${netCredit > 0 ? '#bbf7d0' : '#e5e7eb'}; padding: 0.875rem; border-radius: 0.875rem; text-align: center;">
+                                <div style="font-size: 0.68rem; color: ${netCredit > 0 ? '#16a34a' : '#9ca3af'}; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 0.4rem;">💰 A FAVOR</div>
+                                <div style="font-weight: 900; font-size: 1.3rem; color: ${netCredit > 0 ? '#16a34a' : '#9ca3af'}; line-height: 1;">
                                     ${netCredit > 0 ? formatCLP(netCredit) : '$0'}
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Botones de Acción -->
-                        <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.5rem;">
-                            <div style="display: flex; gap: 0.75rem;">
-                                <button class="btn" style="flex: 1.5; background: #3b82f6; color: #fff; border-radius: 0.75rem; padding: 0.75rem; font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s;" 
+                        <!-- Botones de Accón -->
+                        <div style="display: flex; flex-direction: column; gap: 0.65rem; margin-top: 0.25rem;">
+                            <div style="display: flex; gap: 0.65rem;">
+                                <button class="btn" style="flex: 1.5; background: #3b82f6; color: #fff; border-radius: 0.75rem; padding: 0.7rem; font-weight: 700; font-size: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s; border: none;" 
                                         onclick="CustomersView.showAccountDetails(${c.id})"
                                         onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
                                     <span>💳 Ver Estado</span>
                                 </button>
-                                <button class="btn" style="flex: 1; background: #10b981; color: #fff; border-radius: 0.75rem; padding: 0.75rem; font-weight: 700; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s;" 
+                                <button class="btn" style="flex: 1; background: #10b981; color: #fff; border-radius: 0.75rem; padding: 0.7rem; font-weight: 700; font-size: 0.875rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s; border: none;" 
                                         onclick="CustomersView.showAddCreditForm(${c.id})"
                                         onmouseover="this.style.background='#059669'" onmouseout="this.style.background='#10b981'">
                                     <span>➕ Abono</span>
                                 </button>
                             </div>
                             
-                            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.05);">
+                            <div style="display: flex; justify-content: flex-end; gap: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #f3f4f6;">
                                 ${PermissionService.can('customers.edit') ? `
-                                <button class="btn btn-sm" style="background: rgba(255,255,255,0.05); color: #94a3b8; border: 1px solid rgba(255,255,255,0.1); width: 36px; height: 36px; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; padding: 0;" onclick="CustomersView.showCustomerForm(${c.id})" title="Editar Datos">✏️</button>` : ''}
+                                <button class="btn btn-sm" style="background: #f9fafb; color: #374151; border: 1.5px solid #e5e7eb; width: 36px; height: 36px; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; padding: 0;" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='#f9fafb'" onclick="CustomersView.showCustomerForm(${c.id})" title="Editar Datos">✏️</button>` : ''}
                                 ${PermissionService.can('customers.delete') ? `
-                                <button class="btn btn-sm" style="background: rgba(239, 68, 68, 0.05); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.1); width: 36px; height: 36px; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; padding: 0;" onclick="CustomersView.deleteCustomer(${c.id})" title="Desactivar Cliente">🗑️</button>` : ''}
+                                <button class="btn btn-sm" style="background: #fef2f2; color: #dc2626; border: 1.5px solid #fecaca; width: 36px; height: 36px; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; padding: 0;" onmouseover="this.style.background='#fee2e2'" onmouseout="this.style.background='#fef2f2'" onclick="CustomersView.deleteCustomer(${c.id})" title="Desactivar Cliente">🗑️</button>` : ''}
                             </div>
                         </div>
                     </div>

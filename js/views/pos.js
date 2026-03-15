@@ -26,114 +26,120 @@ const POSView = {
 
         return `
             <!-- BARRA SUPERIOR ESTRATÉGICA -->
-            <div style="background: var(--surface-lighter); border: 1px solid rgba(255,255,255,0.1); border-radius: 1.25rem; padding: 1.1rem 1.5rem; display: flex; flex-direction: column; gap: 1rem; box-shadow: 0 10px 30px rgba(0,0,0,0.3); position: relative; z-index: 10;">
+            <!-- BARRA SUPERIOR ESTRATÉGICA -->
+            <div class="white-panel" style="display: flex; flex-direction: column; gap: 1rem; position: relative; z-index: 10;">
                 
                 <div style="display: flex; align-items: center; justify-content: space-between; gap: 1.5rem;">
                     <!-- Bloque 1: Total Gigante -->
                     <div style="display: flex; flex-direction: column; min-width: 220px;">
-                        <div style="font-size: 0.8rem; color: #6ee7b7; text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-bottom: 0.2rem; opacity: 0.8;">Total a Pagar</div>
-                        <div id="cartTotal" style="font-size: 3rem; font-weight: 950; color: #a7f3d0; text-shadow: 0 0 20px rgba(16, 185, 129, 0.4); line-height: 1;">${formatCLP(0)}</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 2px; font-weight: 700; margin-bottom: 0.2rem;">Total a Pagar</div>
+                        <div id="cartTotal" style="font-size: 3.5rem; font-weight: 900; color: var(--primary); line-height: 1;">${formatCLP(0)}</div>
                     </div>
 
                     <!-- Bloque 2: Cliente -->
                     <div id="customerInfo" style="flex: 1; min-width: 200px;">
-                        <button class="btn" style="width: 100%; height: 60px; padding: 0.75rem; border-radius: 1rem; border: 2px solid #3b82f6; background: rgba(59, 130, 246, 0.1); color: #fff; font-size: 1rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.75rem; transition: all 0.2s; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);" onclick="POSView.selectCustomer()">
-                            <span style="font-size: 1.2rem;">👤</span> Seleccionar Cliente
+                        <button class="btn btn-outline-primary" style="width: 100%; height: 64px; border-radius: 1rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.75rem;" onclick="POSView.selectCustomer()">
+                            <span style="font-size: 1.25rem;">👤</span> Seleccionar Cliente
                         </button>
                     </div>
 
                     <!-- Bloque 3: Documento -->
-                    <div style="display: flex; gap: 0.5rem; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 1.25rem; border: 1px solid rgba(255,255,255,0.05); width: 280px; height: 60px;">
-                        <button id="docBoletaBtn" class="btn" style="flex: 1; border-radius: 0.9rem; border: 2px solid ${this.selectedDocType === 'boleta' ? '#3b82f6' : 'transparent'}; background: ${this.selectedDocType === 'boleta' ? 'rgba(59, 130, 246, 0.25)' : 'rgba(255,255,255,0.02)'}; color: ${this.selectedDocType === 'boleta' ? '#60a5fa' : 'rgba(255,255,255,0.3)'}; font-size: 0.9rem; font-weight: 900; letter-spacing: 1px; transition: all 0.2s;" onclick="POSView.setDocType('boleta')">
+                    <div style="display: flex; gap: 0.5rem; background: var(--surface); padding: 0.5rem; border-radius: 1.25rem; border: 1px solid var(--border); width: 280px; height: 64px;">
+                        <button id="docBoletaBtn" class="btn" style="flex: 1; border-radius: 0.9rem; border: 2px solid ${this.selectedDocType === 'boleta' ? 'var(--primary)' : 'transparent'}; background: ${this.selectedDocType === 'boleta' ? 'var(--surface-content)' : 'transparent'}; color: ${this.selectedDocType === 'boleta' ? 'var(--primary)' : 'var(--text-muted)'}; font-size: 0.9rem; font-weight: 800; transition: all 0.2s;" onclick="POSView.setDocType('boleta')">
                             BOLETA
                         </button>
-                        <button id="docInternoBtn" class="btn" style="flex: 1; border-radius: 0.9rem; border: 2px solid ${this.selectedDocType === 'sin_boleta' ? '#f59e0b' : 'transparent'}; background: ${this.selectedDocType === 'sin_boleta' ? 'rgba(245, 158, 11, 0.25)' : 'rgba(255,255,255,0.02)'}; color: ${this.selectedDocType === 'sin_boleta' ? '#fbbf24' : 'rgba(255,255,255,0.3)'}; font-size: 0.9rem; font-weight: 900; letter-spacing: 1px; transition: all 0.2s;" onclick="POSView.setDocType('sin_boleta')">
+                        <button id="docInternoBtn" class="btn" style="flex: 1; border-radius: 0.9rem; border: 2px solid ${this.selectedDocType === 'sin_boleta' ? 'var(--warning)' : 'transparent'}; background: ${this.selectedDocType === 'sin_boleta' ? 'var(--surface-content)' : 'transparent'}; color: ${this.selectedDocType === 'sin_boleta' ? 'var(--warning)' : 'var(--text-muted)'}; font-size: 0.9rem; font-weight: 800; transition: all 0.2s;" onclick="POSView.setDocType('sin_boleta')">
                             INTERNO
                         </button>
                     </div>
                 </div>
 
-                <!-- Bloque 4: Métodos de Pago (Segunda fila para mayor estabilidad) -->
-                <div style="display: flex; gap: 0.75rem; padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.05);">
-                    <button class="payment-btn-top" style="background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #6ee7b7;" onclick="POSView.completeSale('cash')">
+                <!-- Bloque 4: Métodos de Pago -->
+                <div style="display: flex; gap: 0.75rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                    <button class="btn btn-primary" style="flex: 1; height: 75px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem;" onclick="POSView.completeSale('cash')">
                         <span style="font-size: 1.5rem;">💵</span>
-                        <div style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase;">Efectivo</div>
+                        <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">Efectivo</div>
                     </button>
                     
-                    <button id="payCardBtn" class="payment-btn-top" style="visibility: ${this.selectedDocType === 'boleta' ? 'visible' : 'hidden'}; opacity: ${this.selectedDocType === 'boleta' ? '1' : '0'}; pointer-events: ${this.selectedDocType === 'boleta' ? 'all' : 'none'}; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #93c5fd; transition: all 0.2s;" onclick="POSView.completeSale('card')">
+                    <button id="payCardBtn" class="btn btn-primary" style="flex: 1; height: 75px; display: ${this.selectedDocType === 'boleta' ? 'flex' : 'none'}; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; background: #2563eb;" onclick="POSView.completeSale('card')">
                         <span style="font-size: 1.5rem;">💳</span>
-                        <div style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase;">Tarjeta</div>
+                        <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">Tarjeta</div>
                     </button>
                     
-                    <button id="payQRBtn" class="payment-btn-top" style="visibility: ${this.selectedDocType === 'boleta' ? 'visible' : 'hidden'}; opacity: ${this.selectedDocType === 'boleta' ? '1' : '0'}; pointer-events: ${this.selectedDocType === 'boleta' ? 'all' : 'none'}; background: rgba(168, 85, 247, 0.15); border: 1px solid rgba(168, 85, 247, 0.3); color: #d8b4fe; transition: all 0.2s;" onclick="POSView.completeSale('qr')">
+                    <button id="payQRBtn" class="btn btn-primary" style="flex: 1; height: 75px; display: ${this.selectedDocType === 'boleta' ? 'flex' : 'none'}; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem; background: #8b5cf6;" onclick="POSView.completeSale('qr')">
                         <span style="font-size: 1.5rem;">📱</span>
-                        <div style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase;">QR</div>
+                        <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">QR</div>
                     </button>
                     
-                    <button class="payment-btn-top" style="background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.1); color: #e2e8f0;" onclick="POSView.completeSale('other')">
+                    <button class="btn btn-outline-secondary" style="flex: 1; height: 75px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem;" onclick="POSView.completeSale('other')">
                         <span style="font-size: 1.5rem;">🏦</span>
-                        <div style="font-size: 0.7rem; font-weight: 800; text-transform: uppercase;">Transf.</div>
+                        <div style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">Transf.</div>
                     </button>
                 </div>
             </div>
             
-            <div class="pos-layout" style="display: grid; grid-template-columns: 1fr 400px; gap: 1.25rem; flex: 1; min-height: 0; overflow: hidden;">
+            <div class="pos-layout">
                 
                 <!-- COLUMNA IZQUIERDA: Búsqueda y Carrito -->
-                <div style="display: flex; flex-direction: column; gap: 1rem; overflow: hidden;">
+                <div class="pos-left-col">
                     
                     <!-- Buscador -->
-                    <div style="background: rgba(17, 24, 39, 0.4); border: 1px solid rgba(255,255,255,0.05); border-radius: 1.25rem; padding: 1rem;">
-                        <div class="pos-search-box" style="position: relative;">
-                            <span style="position: absolute; left: 1.25rem; top: 50%; transform: translateY(-50%); font-size: 1.3rem; opacity: 0.7;">🔍</span>
-                             <input type="text" 
-                                    id="productSearch" 
-                                    class="form-control" 
-                                    placeholder="Escanea código de barras o busca por nombre..."
-                                    autofocus
-                                    autocomplete="off"
-                                    style="font-size: 1.2rem; padding: 1.1rem 1.1rem 1.1rem 3.5rem; border-radius: 0.8rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(59, 130, 246, 0.3); color: #fff;">
-                            <div id="searchResults" class="pos-search-results" style="position: absolute; top: 100%; left: 0; right: 0; z-index: 50; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 0.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.5); margin-top: 0.5rem; display: none; max-height: 350px; overflow-y: auto;"></div>
+                    <div class="white-panel" style="padding: 1.25rem;">
+                        <div class="search-box" style="position: relative; display: flex; gap: 0.75rem;">
+                            <div style="position: relative; flex: 1;">
+                                <span style="position: absolute; left: 1.25rem; top: 50%; transform: translateY(-50%); font-size: 1.3rem; opacity: 0.4;">🔍</span>
+                                <input type="text" 
+                                       id="productSearch" 
+                                       class="form-control" 
+                                       placeholder="Escanear código o buscar nombre..."
+                                       autofocus
+                                       autocomplete="off"
+                                       style="font-size: 1.125rem; padding: 1rem 1rem 1rem 3.5rem;">
+                            </div>
+                            <button class="btn btn-primary" onclick="POSView.openScanner()" style="width: 60px; height: 56px; border-radius: 0.8rem; font-size: 1.5rem; display: flex; align-items: center; justify-content: center;">
+                                📷
+                            </button>
+                            <div id="searchResults" class="pos-search-results"></div>
                         </div>
                     </div>
                     
                     <!-- Carrito -->
-                    <div style="flex: 1; background: rgba(17, 24, 39, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 1.25rem; display: flex; flex-direction: column; overflow: hidden;">
-                        <div style="padding: 0.85rem 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); background: rgba(0,0,0,0.2); display: flex; justify-content: space-between; align-items: center;">
-                            <h3 style="margin: 0; font-size: 1rem; color: #e2e8f0; font-weight: 600;">🛒 Carrito de Venta</h3>
-                            <button class="btn btn-sm" style="background: rgba(239, 68, 68, 0.1); color: #fca5a5; font-size: 0.75rem; border: 1px solid rgba(239, 68, 68, 0.2);" onclick="POSView.clearCart()">🗑️ Limpiar Carrito</button>
+                    <div class="white-panel" style="flex: 1; display: flex; flex-direction: column; min-height: 400px; padding: 1.25rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);">
+                            <h3 style="margin: 0; font-size: 1.1rem; color: var(--text-main); font-weight: 700;">🛒 Carrito de Venta</h3>
+                            <button class="btn btn-sm btn-outline-danger" onclick="POSView.clearCart()">Limpiar</button>
                         </div>
-                        <div id="cartItems" style="flex: 1; overflow-y: auto; padding: 1rem;"></div>
+                        <div id="cartItems" style="flex: 1; overflow-y: auto;"></div>
                     </div>
                 </div>
                 
                 <!-- COLUMNA DERECHA: Resumen detallado y Acciones Especiales -->
-                <div style="display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; padding-right: 0.5rem;">
+                <div class="pos-right-col">
                     
                     <!-- Resumen Detallado -->
-                    <div style="background: rgba(17, 24, 39, 0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: 1.25rem; padding: 1.25rem;">
-                        <h4 style="margin: 0 0 1rem 0; font-size: 0.8rem; color: #64748b; text-transform: uppercase; letter-spacing: 1px;">📊 Desglose de Venta</h4>
+                    <div class="white-panel" style="padding: 1.5rem;">
+                        <h4 style="margin: 0 0 1.25rem 0; font-size: 0.875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">📊 Resumen de Venta</h4>
                         
-                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 1.1rem;">
-                                <span style="color: #94a3b8;">Subtotal:</span>
-                                <strong id="cartSubtotal" style="color: #fff;">${formatCLP(0)}</strong>
+                        <div style="display: flex; flex-direction: column; gap: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 1rem; font-weight: 500;">Subtotal:</span>
+                                <strong id="cartSubtotal" style="font-size: 1.25rem; font-weight: 700;">${formatCLP(0)}</strong>
                             </div>
                             
-                            <div id="cartDiscountSection" style="display: none; justify-content: space-between; align-items: center; color: #fbbf24; font-size: 1.1rem; padding: 0.5rem; background: rgba(245, 158, 11, 0.05); border-radius: 0.5rem;">
-                                <span>Descuento aplicado:</span>
+                            <div id="cartDiscountSection" style="display: none; justify-content: space-between; align-items: center; color: var(--warning); padding: 0.75rem; background: #fffbeb; border: 1px solid #fef3c7; border-radius: 0.75rem;">
+                                <span style="font-weight: 600;">Descuento:</span>
                                 <strong id="cartDiscountAmount">- ${formatCLP(0)}</strong>
                             </div>
 
-                            <div id="cartCreditSection" style="display: none; justify-content: space-between; align-items: center; color: #34d399; font-size: 1.1rem; padding: 0.5rem; background: rgba(52, 211, 153, 0.05); border-radius: 0.5rem;">
-                                <span>Saldo a Favor usado:</span>
+                            <div id="cartCreditSection" style="display: none; justify-content: space-between; align-items: center; color: var(--accent); padding: 0.75rem; background: #f0fdf4; border: 1px solid #dcfce7; border-radius: 0.75rem;">
+                                <span style="font-weight: 600;">Crédito usado:</span>
                                 <strong id="cartCreditAmount">- ${formatCLP(0)}</strong>
                             </div>
                             
-                            <div id="fiscalBreakdown" style="margin-top: 0.5rem; padding: 0.75rem; background: rgba(0,0,0,0.2); border-radius: 0.75rem; border: 1px solid rgba(255,255,255,0.05); display: none;">
-                                <div style="display: flex; justify-content: space-between; font-size: 0.9rem;">
-                                    <span style="color: #64748b;">IVA Incluido (19%):</span>
-                                    <span id="fiscalIVA" style="font-weight: bold; color: #94a3b8;">$0</span>
+                            <div id="fiscalBreakdown" style="padding: 1rem; background: var(--surface); border-radius: 0.75rem; border: 1px solid var(--border); display: none;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.95rem;">
+                                    <span style="color: var(--text-muted);">IVA (19%):</span>
+                                    <span id="fiscalIVA" style="font-weight: 700; color: var(--text);"> $0</span>
                                 </div>
                             </div>
                         </div>
@@ -145,38 +151,86 @@ const POSView = {
                     </div>
 
                     <!-- Acciones de Venta Especiales -->
-                    <div style="background: rgba(17, 24, 39, 0.5); border: 1px solid rgba(255,255,255,0.08); border-radius: 1.25rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
-                        <button class="btn btn-primary" style="height: 3.5rem; font-size: 1rem; font-weight: 800; border-radius: 1rem; background: linear-gradient(to right, #3b82f6, #2563eb); box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);" onclick="POSView.showMixedPaymentModal()">
+                    <div class="white-panel" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+                        <button class="btn btn-primary" style="height: 4rem; font-size: 1.1rem; font-weight: 800; border-radius: 1rem; width: 100%;" onclick="POSView.showMixedPaymentModal()">
                             🔀 REGISTRAR PAGO MIXTO
                         </button>
 
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
-                            <button class="btn" id="fiarButton" disabled style="height: 4rem; border-radius: 1rem; border: 2px solid #f59e0b; background: rgba(245, 158, 11, 0.1); color: #fff; transition: all 0.2s;" onclick="POSView.completeSalePending()">
-                                <div style="display: flex; flex-direction: column; align-items: center;">
-                                    <span style="font-size: 0.7rem; color: #fcd34d; font-weight: 900; letter-spacing: 1px;">FIAR VENTA</span>
-                                    <span style="font-size: 1.1rem; font-weight: 800;">📓 ANOTAR</span>
-                                </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                            <button class="btn btn-outline-warning" id="fiarButton" disabled style="height: 4.5rem; border-radius: 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem;" onclick="POSView.completeSalePending()">
+                                <span style="font-size: 0.7rem; font-weight: 950; letter-spacing: 1px; text-transform: uppercase;">Fiar Venta</span>
+                                <span style="font-size: 1.125rem; font-weight: 800;">📓 ANOTAR</span>
                             </button>
 
-                            <button class="btn" style="height: 4rem; border-radius: 1rem; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); color: #e2e8f0;" onclick="POSView.holdCurrentSale()">
-                                <div style="display: flex; flex-direction: column; align-items: center;">
-                                    <span style="font-size: 0.7rem; color: #94a3b8;">GUARDAR</span>
-                                    <span style="font-size: 1.1rem; font-weight: 800;">⏸️ ESPERA</span>
-                                </div>
+                            <button class="btn btn-outline-secondary" style="height: 4.5rem; border-radius: 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.25rem;" onclick="POSView.holdCurrentSale()">
+                                <span style="font-size: 0.7rem; font-weight: 950; text-transform: uppercase;">Posponer</span>
+                                <span style="font-size: 1.125rem; font-weight: 800;">⏸️ ESPERA</span>
                             </button>
                         </div>
 
-                        <!-- Botón Recuperar Ventas en Espera -->
                         <div id="heldSalesContainer" style="display: ${posController.heldSales.length > 0 ? 'block' : 'none'};">
-                            <button class="btn" style="width: 100%; height: 3rem; background: rgba(16, 185, 129, 0.15); color: #6ee7b7; border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 1rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 0.75rem;" onclick="POSView.showHeldSales()">
-                                🔄 RECUPERAR VENTAS PAUSADAS
-                                <span style="background: #ef4444; color: #fff; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 900;">${posController.heldSales.length}</span>
+                            <button class="btn btn-outline-primary" style="width: 100%; height: 3.5rem; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 1rem; border-radius: 1rem;" onclick="POSView.showHeldSales()">
+                                🔄 RECUPERAR VENTAS
+                                <span style="background: var(--danger); color: #fff; border-radius: 20px; padding: 0.15rem 0.6rem; font-size: 0.8rem; font-weight: 900;">${posController.heldSales.length}</span>
                             </button>
                         </div>
                     </div>
                 </div>
             </div>
         `;
+    },
+
+    // Abrir Modal de Escáner Portátil
+    async openScanner() {
+        const content = `
+            <div style="width: 100%; max-width: 500px; margin: 0 auto; overflow: hidden; border-radius: 12px; background: #000;">
+                <div id="reader" style="width: 100%;"></div>
+            </div>
+            <div style="text-align: center; margin-top: 1rem; color: #94a3b8; font-size: 0.9rem;">
+                Apunta la cámara al código de barras
+            </div>
+        `;
+        const footer = `<button class="btn btn-secondary" onclick="POSView.closeScanner()">Cerrar Cámara</button>`;
+
+        showModal(content, { title: '📸 Escanear con Cámara', footer });
+
+        setTimeout(() => {
+            const html5QrCode = new Html5Qrcode("reader");
+            this.html5QrCode = html5QrCode;
+            const config = { fps: 10, qrbox: { width: 250, height: 150 } };
+
+            html5QrCode.start(
+                { facingMode: "environment" },
+                config,
+                async (decodedText) => {
+                    // Éxito: vibrar y procesar
+                    if (navigator.vibrate) navigator.vibrate(100);
+                    await this.handleBarcodeScan(decodedText);
+                    this.closeScanner();
+                },
+                (errorMessage) => {
+                    // Solo errores menores durante el escaneo continuado
+                }
+            ).catch((err) => {
+                console.error("Error al iniciar cámara:", err);
+                showNotification("No se pudo acceder a la cámara", 'error');
+                closeModal();
+            });
+        }, 300);
+    },
+
+    closeScanner() {
+        if (this.html5QrCode) {
+            this.html5QrCode.stop().then(() => {
+                this.html5QrCode = null;
+                closeModal();
+            }).catch(err => {
+                console.warn("Error al detener cámara:", err);
+                closeModal();
+            });
+        } else {
+            closeModal();
+        }
     },
 
     setDocType(type) {
@@ -281,11 +335,14 @@ const POSView = {
             }
         });
 
-        document.addEventListener('click', (e) => {
-            if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+        const posCloseSearch = (e) => {
+            if (searchInput && searchResults && !searchInput.contains(e.target) && !searchResults.contains(e.target)) {
                 searchResults.style.display = 'none';
             }
-        });
+        };
+        document.removeEventListener('click', document._posCloseSearch);
+        document._posCloseSearch = posCloseSearch;
+        document.addEventListener('click', posCloseSearch);
 
         this.updateCart();
     },
@@ -477,24 +534,24 @@ const POSView = {
                 ${summary.items.map((item, index) => {
                 const isLoss = item.unitPrice < item.cost;
                 return `
-                        <div style="background: ${isLoss ? 'rgba(239, 68, 68, 0.1)' : 'rgba(0,0,0,0.2)'}; border: 1px solid rgba(255,255,255,0.05); border-radius: 0.75rem; padding: 1rem; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="background: ${isLoss ? '#fef2f2' : 'var(--surface)'}; border: 1px solid ${isLoss ? '#fee2e2' : 'var(--border)'}; border-radius: 1rem; padding: 1.25rem; display: flex; align-items: center; justify-content: space-between; transition: all 0.2s ease;">
                             <div style="flex: 1;">
-                                <strong style="font-size: 1.1rem; color: #fff;">${item.name}</strong>
-                                ${isLoss ? '<span style="color: #f87171; font-size: 0.7rem; margin-left: 0.5rem;">⚠️ PÉRDIDA</span>' : ''}
-                                <div style="display: flex; gap: 1rem; margin-top: 0.5rem; align-items: center;">
-                                    <div style="display: flex; align-items: center; gap: 0.3rem;">
-                                        <span style="font-size: 0.8rem; opacity: 0.7;">Cant:</span>
-                                        <input type="number" value="${item.quantity}" step="${item.type === 'weight' ? '0.001' : '1'}" onchange="POSView.updateQuantity(${item.productId}, this.value)" style="width: 60px; background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #fff; text-align: center;">
+                                <strong style="font-size: 1.125rem; color: var(--text-main);">${item.name}</strong>
+                                ${isLoss ? '<span style="color: var(--danger); font-size: 0.75rem; font-weight: 800; margin-left: 0.75rem;">⚠️ PÉRDIDA</span>' : ''}
+                                <div style="display: flex; gap: 1.5rem; margin-top: 0.75rem; align-items: center;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 0.875rem; color: var(--text-muted); font-weight: 600;">CANT:</span>
+                                        <input type="number" value="${item.quantity}" step="${item.type === 'weight' ? '0.001' : '1'}" onchange="POSView.updateQuantity(${item.productId}, this.value)" style="width: 70px; background: #fff; border: 1px solid var(--border-strong); border-radius: 0.5rem; padding: 0.25rem; text-align: center; font-weight: 700;">
                                     </div>
-                                    <div style="display: flex; align-items: center; gap: 0.3rem;">
-                                        <span style="font-size: 0.8rem; opacity: 0.7;">Precio:</span>
-                                        <input type="number" value="${item.unitPrice}" step="10" onchange="POSView.updatePrice(${item.productId}, this.value)" style="width: 80px; background: transparent; border: 1px solid rgba(255,255,255,0.1); color: #fff; text-align: center;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <span style="font-size: 0.875rem; color: var(--text-muted); font-weight: 600;">PRECIO:</span>
+                                        <input type="number" value="${item.unitPrice}" step="10" onchange="POSView.updatePrice(${item.productId}, this.value)" style="width: 100px; background: #fff; border: 1px solid var(--border-strong); border-radius: 0.5rem; padding: 0.25rem; text-align: center; font-weight: 700;">
                                     </div>
                                 </div>
                             </div>
-                            <div style="text-align: right;">
-                                <div style="font-size: 1.25rem; font-weight: bold; margin-bottom: 0.5rem;">${formatCLP(item.total)}</div>
-                                <button class="btn btn-sm btn-danger" onclick="POSView.removeItem(${item.productId})">🗑️</button>
+                            <div style="text-align: right; min-width: 120px;">
+                                <div style="font-size: 1.35rem; font-weight: 900; color: var(--text-main); margin-bottom: 0.75rem;">${formatCLP(item.total)}</div>
+                                <button class="btn btn-sm btn-outline-danger" style="border-radius: 0.6rem; padding: 0.5rem;" onclick="POSView.removeItem(${item.productId})">🗑️</button>
                             </div>
                         </div>
                     `;
@@ -911,18 +968,35 @@ const POSView = {
     async selectCustomer() {
         showNotification('Cargando clientes y saldos...', 'info');
         const customers = await Customer.getAll();
+        const pendingSales = await Sale.getPendingSales();
 
-        // Cargar saldos de todos los clientes para poder ordenar
-        const listWithBalances = await Promise.all(customers.map(async (c) => {
-            const bal = await Customer.getAccountBalance(c.id);
-            return { ...c, ...bal };
-        }));
+        // Calcular deudas con 1 sola llamada
+        const debtMap = {};
+        pendingSales.forEach(sale => {
+            if (sale.customerId) {
+                const debt = (parseFloat(sale.total) || 0) - (parseFloat(sale.paidAmount) || 0);
+                if (debt > 0) {
+                    debtMap[sale.customerId] = (debtMap[sale.customerId] || 0) + debt;
+                }
+            }
+        });
+        
+        const listWithBalances = customers.map(c => {
+            // Subtract credit if any
+            const debt = debtMap[c.id] || 0;
+            const credit = (c.balanceCredit != null) ? parseFloat(c.balanceCredit) || 0 : 0;
+            const displayBalance = debt - credit;
+            return { ...c, displayBalance };
+        });
 
-        // Ordenar: Primero los que más deben (displayBalance desc)
+        // Ordenar: Primero los que más deben
         listWithBalances.sort((a, b) => (b.displayBalance || 0) - (a.displayBalance || 0));
 
-        // Calcular Ranking por Volumen (Top 3)
-        const allSales = await Sale.getAll();
+        // Calcular Ranking por Volumen (Top 3) solo de ultimos 60 dias
+        const sixtyDaysAgo = new Date();
+        sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+        const allSales = await Sale.getByDateRange(sixtyDaysAgo.toISOString(), new Date().toISOString());
+        
         const volumeMap = {};
         allSales.forEach(s => {
             if (s.customerId && s.status !== 'cancelled') {
@@ -1011,7 +1085,10 @@ const POSView = {
                     ${debt > 0 ?
                 `<div style="color: #fca5a5; font-size: 0.95rem; font-weight: 700;">⚠️ DEUDA ACTUAL: ${formatCLP(debt)}</div>` :
                 debt < 0 ?
-                    `<div style="color: #6ee7b7; font-size: 0.95rem; font-weight: 700;">💰 SALDO A FAVOR: ${formatCLP(Math.abs(debt))}</div>` :
+                    `<div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="color: #6ee7b7; font-size: 0.95rem; font-weight: 700;">💰 SALDO A FAVOR: ${formatCLP(Math.abs(debt))}</div>
+                        <button class="btn btn-sm btn-success" onclick="POSView.useCreditBalance()" style="padding: 0.2rem 0.75rem; font-weight: 800; border-radius: 0.5rem;">USAR SALDO</button>
+                    </div>` :
                     `<div style="color: #94a3b8; font-size: 0.85rem;">✅ Al día / Sin deuda</div>`
             }
                 </div>
@@ -1221,5 +1298,9 @@ const POSView = {
             'other': 'Transferencia'
         };
         return names[method] || method;
+    },
+
+    destroy() {
+        console.log('POSView destroyed');
     }
 };

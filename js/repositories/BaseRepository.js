@@ -90,7 +90,8 @@ class BaseRepository {
      * @returns {Promise<Array>}
      */
     async findAll() {
-        return await db.getAll(this.storeName);
+        const results = await db.getAll(this.storeName);
+        return Array.isArray(results) ? results : [];
     }
 
     /**
@@ -100,7 +101,8 @@ class BaseRepository {
      * @returns {Promise<Array>}
      */
     async findByIndex(indexName, value) {
-        return await db.getByIndex(this.storeName, indexName, value);
+        const results = await db.getByIndex(this.storeName, indexName, value);
+        return Array.isArray(results) ? results : [];
     }
 
     /**
@@ -111,7 +113,8 @@ class BaseRepository {
      * @returns {Promise<Array>}
      */
     async findByIndexRange(indexName, lower, upper) {
-        return await db.getByIndexRange(this.storeName, indexName, lower, upper);
+        const results = await db.getByIndexRange(this.storeName, indexName, lower, upper);
+        return Array.isArray(results) ? results : [];
     }
 
     /**
