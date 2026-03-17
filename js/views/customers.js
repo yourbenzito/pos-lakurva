@@ -83,15 +83,15 @@ const CustomersView = {
                 ${topCustomers.length === 0 ? '<div style="background: #f9fafb; border: 1.5px dashed #d1d5db; border-radius: 1.25rem; padding: 2rem; text-align: center; color: #9ca3af; font-style: italic;">No hay actividad de clientes aún</div>' : ''}
             </div>
 
-            <div class="card" style="padding: 1.5rem; background: #ffffff; border: 1.5px solid #e5e7eb;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                    <h2 style="margin:0; font-size: 1.2rem; font-weight: 800; color: #111827;">👥 Listado por Deuda</h2>
-                    <div class="search-box" style="width: 300px;">
-                        <input type="text" id="searchCustomers" class="form-control" placeholder="Buscar clientes...">
+            <div class="card" style="padding: 1.5rem; background: #fff1f2; border: 3px solid #e11d48; box-shadow: 0 10px 25px rgba(225, 29, 72, 0.1);">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                    <h2 style="margin:0; font-size: 1.4rem; font-weight: 800; color: #9f1239;">👥 Listado de Clientes</h2>
+                    <div class="search-box" style="width: 100%; max-width: 400px;">
+                        <input type="text" id="searchCustomers" class="form-control" placeholder="🔍 Buscar cliente por nombre..." style="border: 2px solid #e11d48; font-size: 1.1rem; height: 50px;">
                     </div>
                 </div>
                 
-                <div id="customersTable">
+                <div id="customersTable" style="background: #ffffff; border-radius: 1rem; padding: 1rem; border: 1.5px solid #fecaca;">
                     ${this.renderCustomersTable(customers, debtMap)}
                 </div>
             </div>

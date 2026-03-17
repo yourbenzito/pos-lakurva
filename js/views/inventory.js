@@ -407,86 +407,51 @@ const InventoryView = {
 
     renderBulkAdjustmentForm() {
         return `
-            <div class="card" style="border-top: 4px solid var(--primary); padding: 2rem;">
-                <h3 style="margin-bottom: 2rem; display: flex; align-items: center; gap: 0.75rem; font-size: 1.6rem;">
-                    <span style="font-size: 2rem;">📋</span> Registro Masivo de Bajas de Stock
+            <div class="card" style="background: #fefce8; border: 3px solid #ca8a04; box-shadow: 0 10px 25px rgba(202, 138, 4, 0.1); padding: 2rem;">
+                <h3 style="margin-bottom: 2rem; display: flex; align-items: center; gap: 0.75rem; font-size: 1.6rem; color: #854d0e;">
+                    <span style="font-size: 2.5rem;">📋</span> Registro Masivo de Stock
                 </h3>
 
-                <div style="margin-bottom: 2.5rem;">
-                    <label style="color: #94a3b8; font-size: 1.1rem; margin-bottom: 1rem; display: block; font-weight: 600;">1. Selecciona el Tipo de Registro (Crucial para Reportes)</label>
+                <div style="margin-bottom: 2.5rem; background: #ffffff; padding: 1.5rem; border-radius: 1.25rem; border: 2.5px solid #fde047;">
+                    <label style="color: #713f12; font-size: 1.1rem; margin-bottom: 1.25rem; display: block; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">1. ¿Qué tipo de registro quieres hacer?</label>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;">
                         <button onclick="InventoryView.setBulkMovementType('consumption')" 
                                 class="btn" 
-                                style="height: 100px; font-size: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; transition: all 0.3s;
-                                background: ${this.selectedBulkType === 'consumption' ? 'linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(37, 99, 235, 0.2))' : 'rgba(31, 41, 55, 0.4)'};
-                                border: 2px solid ${this.selectedBulkType === 'consumption' ? '#60a5fa' : 'rgba(255,255,255,0.05)'};
-                                box-shadow: ${this.selectedBulkType === 'consumption' ? '0 10px 25px rgba(59, 130, 246, 0.25)' : 'none'};
-                                color: ${this.selectedBulkType === 'consumption' ? '#fff' : '#94a3b8'};">
-                            <span style="font-size: 2rem;">🍴</span>
-                            <strong>Consumo Interno (Casa / Local)</strong>
+                                style="height: 120px; font-size: 1.3rem; display: flex; flex-direction: column; gap: 0.5rem; transition: all 0.3s;
+                                background: ${this.selectedBulkType === 'consumption' ? '#fef9c3' : '#ffffff'};
+                                border: 4px solid ${this.selectedBulkType === 'consumption' ? '#eab308' : '#f1f5f9'};
+                                color: #854d0e;">
+                            <span style="font-size: 2.5rem;">🍴</span>
+                            <strong>Consumo de la Casa</strong>
                         </button>
                         
                         <button onclick="InventoryView.setBulkMovementType('loss')" 
                                 class="btn" 
-                                style="height: 100px; font-size: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; transition: all 0.3s;
-                                background: ${this.selectedBulkType === 'loss' ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.4), rgba(220, 38, 38, 0.2))' : 'rgba(31, 41, 55, 0.4)'};
-                                border: 2px solid ${this.selectedBulkType === 'loss' ? '#f87171' : 'rgba(255,255,255,0.05)'};
-                                box-shadow: ${this.selectedBulkType === 'loss' ? '0 10px 25px rgba(239, 68, 68, 0.25)' : 'none'};
-                                color: ${this.selectedBulkType === 'loss' ? '#fff' : '#94a3b8'};">
-                            <span style="font-size: 2rem;">🗑️</span>
-                            <strong>Pérdida / Merma / Vencimiento</strong>
+                                style="height: 120px; font-size: 1.3rem; display: flex; flex-direction: column; gap: 0.5rem; transition: all 0.3s;
+                                background: ${this.selectedBulkType === 'loss' ? '#fee2e2' : '#ffffff'};
+                                border: 4px solid ${this.selectedBulkType === 'loss' ? '#ef4444' : '#f1f5f9'};
+                                color: ${this.selectedBulkType === 'loss' ? '#991b1b' : '#6b7280'};">
+                            <span style="font-size: 2.5rem;">🗑️</span>
+                            <strong>Pérdida o Merma</strong>
                         </button>
                     </div>
                 </div>
 
-                <div style="margin-bottom: 2rem;">
-                    <label style="color: #94a3b8; font-size: 1.1rem; margin-bottom: 0.75rem; display: block; font-weight: 600;">2. Agregar Productos a Descontar</label>
-                    <div class="form-group" style="background: rgba(15, 23, 42, 0.4); padding: 1.5rem; border-radius: 1rem; border: 1px dashed ${this.selectedBulkType === 'consumption' ? 'rgba(59, 130, 246, 0.3)' : 'rgba(239, 68, 68, 0.3)'};">
-                        <div class="search-box" style="position: relative;">
-                            <input type="text" 
-                                   id="bulkSearchInput" 
-                                   class="form-control" 
-                                   placeholder="🔍 Escanea código o busca el producto..."
-                                   autofocus
-                                   style="font-size: 1.2rem; padding: 1.2rem; background: rgba(0,0,0,0.3); border-color: rgba(255,255,255,0.1); border-radius: 0.75rem;"
-                                   oninput="InventoryView.handleBulkSearch(event)">
-                            <div id="bulkSearchResults" class="inventory-search-results" style="margin-top: 0.5rem;"></div>
-                        </div>
+                <div style="margin-bottom: 2rem; background: #ffffff; padding: 1.5rem; border-radius: 1.25rem; border: 2.5px solid #fde047;">
+                    <label style="color: #713f12; font-size: 1.1rem; margin-bottom: 1rem; display: block; font-weight: 800;">2. Busca y agrega los productos:</label>
+                    <div class="search-box">
+                        <input type="text" 
+                               id="bulkSearchInput" 
+                               class="form-control" 
+                               placeholder="🔍 Escribe el nombre o usa el código de barras..."
+                               style="font-size: 1.3rem; height: 65px; border: 3.5px solid #ca8a04; border-radius: 1rem; background: #fdfdfd; padding-left: 3rem;"
+                               oninput="InventoryView.handleBulkSearch(event)">
+                        <div id="bulkSearchResults" class="search-results" style="display: none;"></div>
                     </div>
                 </div>
                 
-                <div class="form-group" style="margin-top: 2rem;">
-                    <h4 style="margin-bottom: 1rem; color: #e2e8f0; font-size: 1.2rem; display: flex; align-items: center; justify-content: space-between;">
-                        <span>📋 Productos en Lista de ${this.selectedBulkType === 'consumption' ? 'Consumo' : 'Pérdida'}</span>
-                        <span id="bulkSelectedCount" style="font-size: 0.9rem; background: rgba(59, 130, 246, 0.2); color: #60a5fa; padding: 0.25rem 0.75rem; border-radius: 2rem;">0 seleccionados</span>
-                    </h4>
-                    <div id="bulkSelectedProducts">
-                        <div class="empty-state" style="padding: 3rem; background: rgba(17, 24, 39, 0.4); border: 1px dashed rgba(255,255,255,0.1); border-radius: 1rem; text-align: center;">
-                            <div style="font-size: 3rem; margin-bottom: 1rem; opacity: 0.5;">🛒</div>
-                            <p style="color: #94a3b8; font-size: 1.1rem; margin-bottom: 0;">Aún no has agregado productos</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div style="margin-top: 2rem; background: rgba(0,0,0,0.2); padding: 1.5rem; border-radius: 1rem;">
-                    <div class="form-group" style="margin: 0;">
-                        <label style="color: #94a3b8; font-weight: 600;">Motivo General de la Transacción (opcional)</label>
-                        <input type="text" id="bulkReason" class="form-control" 
-                               placeholder="Ej: Consumo de personal, Producto con empaque dañado, etc..." 
-                               style="font-size: 1.1rem; padding: 0.75rem; background: rgba(15, 23, 42, 0.8);">
-                    </div>
-                </div>
-                
-                <div style="display: flex; gap: 1rem; margin-top: 2rem; justify-content: flex-end; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 1.5rem;">
-                    <button class="btn btn-secondary" onclick="InventoryView.resetBulkForm()" style="padding: 0.75rem 1.5rem; font-size: 1.1rem;">
-                        Limpiar Formulario
-                    </button>
-                    <button class="btn ${this.selectedBulkType === 'consumption' ? 'btn-primary' : 'btn-danger'}" 
-                            onclick="InventoryView.saveBulkAdjustment()" 
-                            style="padding: 0.75rem 2rem; font-size: 1.1rem; font-weight: 700; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-                        ✓ Confirmar Registro de Descuento
-                    </button>
-                </div>
+                <!-- Lista de productos seleccionados con estilo ultra-claro -->
+                <div id="bulkSelectedProducts"></div>
             </div>
         `;
     },
@@ -875,30 +840,33 @@ const InventoryView = {
         const resultsContainer = document.getElementById('bulkSearchResults');
         if (!resultsContainer) return;
         if (!products || products.length === 0) {
-            resultsContainer.innerHTML = '<div style="padding: 1rem; color: var(--secondary);">No se encontraron productos</div>';
+            resultsContainer.innerHTML = '<div style="padding: 1.5rem; color: #991b1b; background: #fef2f2; font-weight: 700; text-align: center;">❌ No se encontraron productos</div>';
             resultsContainer.style.display = 'block';
             return;
         }
-        resultsContainer.innerHTML = products.map((p, index) => `
-            <div class="search-result-item inventory-search-item ${index === 0 ? 'selected' : ''}" 
-                 data-index="${index}"
-                 data-product-id="${p.id}"
-                 onmouseover="InventoryView.highlightBulkResult(${index})"
-                 onclick="InventoryView.selectBulkProduct(${p.id})">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <strong class="inventory-search-name">${p.name}</strong>
-                        <div class="inventory-search-stock">
-                            <span>Stock disponible</span>
-                            <strong>${formatStock(p.stock)} ${p.type === 'weight' ? 'kg' : 'un'}</strong>
-                        </div>
+        resultsContainer.innerHTML = products.map((p, index) => {
+            const isWeight = p.type === 'weight';
+            const stockClass = p.stock <= 0 ? 'stock-none' : (p.stock <= (isWeight ? 1 : 5) ? 'stock-low' : 'stock-ok');
+            const stockIcon = p.stock <= 0 ? '❌' : (p.stock <= (isWeight ? 1 : 5) ? '⚠️' : '✅');
+
+            return `
+                <div class="search-result-item ${index === 0 ? 'selected' : ''}" 
+                     data-index="${index}"
+                     data-product-id="${p.id}"
+                     onmouseover="InventoryView.highlightBulkResult(${index})"
+                     onclick="InventoryView.selectBulkProduct(${p.id})">
+                    <div style="flex: 1;">
+                        <div class="search-result-name" style="font-size: 1.1rem;">${p.name}</div>
+                        <div style="font-size: 0.8rem; color: #64748b; font-weight: 600;">CÓD: ${p.barcode || 'S/N'}</div>
                     </div>
                     <div style="text-align: right;">
-                        <span class="badge badge-info" style="font-size: 0.85rem;">Seleccionar</span>
+                        <div class="search-result-stock ${stockClass}" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">
+                            ${stockIcon} Stock: ${formatStock(p.stock)} ${isWeight ? 'kg' : 'un'}
+                        </div>
                     </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
         resultsContainer.style.display = 'block';
         if (products.length > 0) this.highlightBulkResult(0);
     },

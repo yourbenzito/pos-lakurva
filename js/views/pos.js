@@ -364,26 +364,46 @@ const POSView = {
             return;
         }
 
-        searchResults.innerHTML = products.map((p, index) => `
-            <div class="search-result-item ${index === 0 ? 'selected' : ''}" 
-                 data-index="${index}"
-                 data-product-id="${p.id}"
-                 onmouseover="POSView.highlightResult(${index})"
-                 onclick="POSView.selectSearchResult(${p.id})">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <strong class="pos-search-name">${p.name}</strong>
-                        <div class="pos-search-stock">
-                            ${p.stock <= (p.type === 'weight' ? 1 : 5)
-                ? `<span style="color: #ef4444; font-weight: 900;">⚠️ STOCK BAJO:</span>`
-                : 'Stock:'}
-                            <strong>${formatStock(p.stock)} ${p.type === 'weight' ? 'kg' : 'un'}</strong>
+        searchResults.innerHTML = products.map((p, index) => {
+            const isWeight = p.type === 'weight';
+            const stockLimit = isWeight ? 1.0 : 5;
+            let stockClass = 'stock-ok';
+            let stockIcon = '✅';
+            let stockStatus = 'En Stock';
+
+            if (p.stock <= 0) {
+                stockClass = 'stock-none';
+                stockIcon = '❌';
+                stockStatus = 'Agotado';
+            } else if (p.stock <= stockLimit) {
+                stockClass = 'stock-low';
+                stockIcon = '⚠️';
+                stockStatus = 'Bajo Stock';
+            }
+
+            return `
+                <div class="search-result-item ${index === 0 ? 'selected' : ''}" 
+                     data-index="${index}"
+                     data-product-id="${p.id}"
+                     onmouseover="POSView.highlightResult(${index})"
+                     onclick="POSView.selectSearchResult(${p.id})">
+                    <div style="flex: 1;">
+                        <div class="search-result-name">${p.name}</div>
+                        <div style="font-size: 0.85rem; color: #6b7280; font-weight: 600; margin-top: 0.2rem;">
+                            CÓD: ${p.barcode || 'S/N'}
                         </div>
                     </div>
-                    <strong style="color: #4ade80; font-size: 1.2rem;">${formatCLP(p.price)}${p.type === 'weight' ? '/kg' : ''}</strong>
+                    <div style="text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 0.5rem;">
+                        <div class="search-result-stock ${stockClass}">
+                            ${stockIcon} ${stockStatus}: ${formatStock(p.stock)} ${isWeight ? 'kg' : 'un'}
+                        </div>
+                        <div style="color: #16a34a; font-size: 1.4rem; font-weight: 900;">
+                            ${formatCLP(p.price)}${isWeight ? '/kg' : ''}
+                        </div>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
         searchResults.style.display = 'block';
     },
 

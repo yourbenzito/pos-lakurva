@@ -75,10 +75,10 @@ const ProductsView = {
                 </div>
             </div>
             
-            <div class="card" style="background: #ffffff; border: 1.5px solid #e5e7eb;">
+            <div class="card" style="background: #f0f7ff; border: 2.5px solid #3b82f6; box-shadow: 0 10px 25px rgba(59, 130, 246, 0.1);">
                 <div style="display: flex; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; align-items: center;">
                     <div class="form-group pos-section" style="flex: 1; margin-bottom: 0;">
-                        <input type="text" id="searchProducts" class="form-control" placeholder="Buscar productos...">
+                        <input type="text" id="searchProducts" class="form-control" placeholder="🔍 Buscar productos aquí..." style="border: 2px solid #3b82f6; font-size: 1.1rem; height: 50px;">
                     </div>
                     <div id="productsReturnBtnContainer">
                         ${this.renderReturnButton()}

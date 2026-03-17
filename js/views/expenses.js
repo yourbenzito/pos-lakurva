@@ -15,38 +15,37 @@ const ExpensesView = {
                         ➕ Nuevo Gasto
                     </button>
                 </div>
-            </div>
-
-            <div class="card" style="background: #ffffff; border: 1px solid #d1d5db; border-radius: 1rem; padding: 1.5rem; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
-                <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; background: #f9fafb; padding: 1rem; border-radius: 0.75rem; border: 1px solid #e5e7eb;">
-                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                        <label style="color: #374151; font-weight: 600; font-size: 0.85rem;">Categoría</label>
-                        <select id="expenseCategoryFilter" class="form-control" onchange="ExpensesView.filterExpenses()" style="background: #ffffff; color: #111827; border: 1.5px solid #d1d5db;">
-                            <option value="all">Todas</option>
+            </div>            <div class="card" style="background: #fff7ed; border: 3px solid #f97316; box-shadow: 0 10px 25px rgba(249, 115, 22, 0.1);">
+                <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap; background: #ffffff; padding: 1.25rem; border-radius: 1rem; border: 2px solid #fdba74;">
+                    <div class="form-group" style="flex: 1; min-width: 150px; margin-bottom: 0;">
+                        <label style="color: #9a3412; font-weight: 800; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">📂 Categoría</label>
+                        <select id="expenseCategoryFilter" class="form-control" onchange="ExpensesView.filterExpenses()" style="background: #ffffff; color: #111827; border: 2px solid #f97316; height: 45px; font-weight: 700;">
+                            <option value="all">Todas las categorías</option>
                             ${categories.map(cat => `<option value="${cat}">${cat}</option>`).join('')}
                         </select>
                     </div>
-                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                        <label style="color: #374151; font-weight: 600; font-size: 0.85rem;">Desde</label>
-                        <input type="date" id="expenseStartDateFilter" class="form-control" onchange="ExpensesView.filterExpenses()" style="background: #ffffff; color: #111827; border: 1.5px solid #d1d5db;">
+                    <div class="form-group" style="flex: 1; min-width: 150px; margin-bottom: 0;">
+                        <label style="color: #9a3412; font-weight: 800; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">📅 Desde</label>
+                        <input type="date" id="expenseStartDateFilter" class="form-control" onchange="ExpensesView.filterExpenses()" style="background: #ffffff; color: #111827; border: 2px solid #f97316; height: 45px; font-weight: 700;">
                     </div>
-                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                        <label style="color: #374151; font-weight: 600; font-size: 0.85rem;">Hasta</label>
-                        <input type="date" id="expenseEndDateFilter" class="form-control" onchange="ExpensesView.filterExpenses()" style="background: #ffffff; color: #111827; border: 1.5px solid #d1d5db;">
+                    <div class="form-group" style="flex: 1; min-width: 150px; margin-bottom: 0;">
+                        <label style="color: #9a3412; font-weight: 800; font-size: 0.9rem; margin-bottom: 0.5rem; display: block;">📅 Hasta</label>
+                        <input type="date" id="expenseEndDateFilter" class="form-control" onchange="ExpensesView.filterExpenses()" style="background: #ffffff; color: #111827; border: 2px solid #f97316; height: 45px; font-weight: 700;">
                     </div>
                     <div style="display: flex; align-items: flex-end;">
-                        <button class="btn btn-secondary" onclick="ExpensesView.clearFilters()">Limpiar Filtros</button>
+                        <button class="btn btn-secondary" onclick="ExpensesView.clearFilters()" style="height: 45px; border: 2px solid #94a3b8; font-weight: 800;">❌ Limpiar</button>
                     </div>
                 </div>
 
-                <div id="expenseSummaryCards" class="grid grid-3" style="margin-bottom: 1.5rem;">
+                <div id="expenseSummaryCards" class="grid grid-3" style="margin-bottom: 2rem;">
                     ${this.renderSummaryCards(summary)}
                 </div>
 
-                <div id="expensesTable">
+                <div id="expensesTable" style="background: #ffffff; border-radius: 1rem; padding: 1.5rem; border: 2px solid #fed7aa;">
                     ${this.renderExpensesTable(expenses)}
                 </div>
             </div>
+v>
         `;
     },
 

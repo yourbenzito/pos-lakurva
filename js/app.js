@@ -156,6 +156,17 @@ const app = {
                 }
             });
         });
+
+        // BLOQUEO DE MOUSE DURANTE NAVEGACIÓN POR TECLADO (Evita interferencias con el puntero)
+        window.addEventListener('keydown', (e) => {
+            if (['ArrowUp', 'ArrowDown', 'Enter'].includes(e.key)) {
+                document.body.classList.add('keyboard-nav');
+            }
+        });
+
+        window.addEventListener('mousemove', () => {
+            document.body.classList.remove('keyboard-nav');
+        });
     },
 
     async navigate(viewName) {

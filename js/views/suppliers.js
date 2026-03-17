@@ -22,17 +22,18 @@ const SuppliersView = {
                 </div>
             </div>
             
-            <div class="card">
-                <div class="form-group">
-                    <div class="search-box">
+            <div class="card" style="background: #f0fdf4; border: 3px solid #10b981; box-shadow: 0 10px 25px rgba(16, 185, 129, 0.1);">
+                <div style="margin-bottom: 2rem;">
+                    <div class="search-box" style="width: 100%;">
                         <input type="text" 
                                id="searchSuppliers" 
                                class="form-control" 
-                               placeholder="Buscar proveedores...">
+                               placeholder="🔍 Buscar proveedor por nombre o RUT..."
+                               style="border: 2px solid #10b981; font-size: 1.2rem; height: 60px; padding: 0 1.5rem;">
                     </div>
                 </div>
                 
-                <div id="suppliersTable">
+                <div id="suppliersTable" style="background: #ffffff; border-radius: 1rem; padding: 1rem; border: 1.5px solid #bbf7d0;">
                     ${this.renderSuppliersTable(suppliers)}
                 </div>
             </div>
